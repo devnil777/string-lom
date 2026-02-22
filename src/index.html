@@ -2430,7 +2430,7 @@
                     type: type,
                     params: type === 'source' ? { delimiter: '\\n' } : {}, // Will be populated with defaults
                     // For process blocks, input comes from chain. For source, it holds value.
-                    value: type === 'source' ? 'Пример строки\nВторая строка\n123' : null
+                    value: type === 'source' ? (localStorage.getItem('strings_last_source') || 'Пример строки\nВторая строка\n123') : null
                 };
 
                 // Set defaults
@@ -2704,6 +2704,9 @@
                     textarea.placeholder = 'Введите текст здесь (или перетащите файл сюда)...';
                     textarea.addEventListener('input', (e) => {
                         block.value = e.target.value;
+                        if (isSource) {
+                            localStorage.setItem('strings_last_source', block.value);
+                        }
                         this.runChain();
                     });
 
