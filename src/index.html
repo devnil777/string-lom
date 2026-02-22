@@ -475,6 +475,11 @@
             box-sizing: border-box;
         }
 
+        .workspace-title i,
+        .workspace-title-editor i {
+            transform: translateY(1px);
+        }
+
         .workspace-toolbar .actions {
             display: flex;
             gap: 8px;
@@ -2146,17 +2151,37 @@
             }
 
             getChainConfig() {
-                return this.chain.map(block => ({
+                const blocks = this.chain.map(block => ({
                     type: block.type,
                     params: { ...block.params }
                 }));
+                // Capture current UI settings
+                const sel = document.getElementById('final-delimiter-select');
+                const custom = document.getElementById('final-custom-delimiter-input');
+                return {
+                    blocks,
+                    settings: {
+                        finalDelimiter: sel ? sel.value : '\\n',
+                        finalCustomDelimiter: custom ? custom.value : ''
+                    }
+                };
             }
 
-            loadChainConfig(importData, clearData = false) {
+            loadChainConfig(data, clearData = false) {
+                let blocksData = [];
+                let settings = null;
+
+                if (Array.isArray(data)) {
+                    blocksData = data;
+                } else if (data && data.blocks) {
+                    blocksData = data.blocks;
+                    settings = data.settings;
+                }
+
                 const defaultSource = 'Пример строки\nВторая строка\n123';
                 const currentSourceValue = (this.chain.length > 0 && !clearData) ? this.chain[0].value : defaultSource;
 
-                this.chain = importData.map(blockData => {
+                this.chain = blocksData.map(blockData => {
                     return {
                         id: this.genId(),
                         type: blockData.type,
@@ -2164,6 +2189,22 @@
                         value: blockData.type === 'source' ? currentSourceValue : null
                     };
                 });
+
+                // Restore UI settings if present
+                if (settings) {
+                    const sel = document.getElementById('final-delimiter-select');
+                    const custom = document.getElementById('final-custom-delimiter-input');
+
+                    if (sel && settings.finalDelimiter !== undefined) {
+                        sel.value = settings.finalDelimiter;
+                        // Trigger change to update UI (show/hide custom input)
+                        sel.dispatchEvent(new Event('change'));
+                    }
+                    if (custom && settings.finalCustomDelimiter !== undefined) {
+                        custom.value = settings.finalCustomDelimiter;
+                        custom.dispatchEvent(new Event('input'));
+                    }
+                }
 
                 this.reRenderAll();
             }
@@ -2194,10 +2235,11 @@
                     try {
                         const json = decodeURIComponent(escape(atob(sharedData)));
                         const importData = JSON.parse(json);
-                        if (Array.isArray(importData) && importData.length > 0 && importData[0].type === 'source') {
+                        const blocks = Array.isArray(importData) ? importData : importData.blocks;
+                        if (Array.isArray(blocks) && blocks.length > 0 && blocks[0].type === 'source') {
                             this.currentChainName = null;
                             this.currentChainId = null;
-                            this.loadChainConfig(importData, true); // true to skip clearing if we want, but user said "без данных"
+                            this.loadChainConfig(importData, true); // true to skip clearing
 
                             // Cleanup URL without refreshing
                             window.history.replaceState({}, document.title, window.location.pathname);
@@ -2228,7 +2270,8 @@
                     if (!txt) return;
                     try {
                         const importData = JSON.parse(txt);
-                        if (!Array.isArray(importData) || importData.length === 0 || importData[0].type !== 'source') {
+                        const blocks = Array.isArray(importData) ? importData : importData.blocks;
+                        if (!Array.isArray(blocks) || blocks.length === 0 || blocks[0].type !== 'source') {
                             throw new Error('Некорректный формат цепочки');
                         }
                         this.currentChainName = null;
