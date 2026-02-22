@@ -893,12 +893,72 @@
         }
 
         .modal-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
+            padding: 20px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--light);
+            background: transparent;
+            flex-shrink: 0;
+        }
+
+        .modal.dialog {
+            max-width: 440px;
+            border-radius: 16px;
+        }
+
+        .modal.dialog.large {
+            max-width: 720px;
+        }
+
+        .dialog-body {
+            padding: 0 24px 24px 24px;
+            color: var(--dark);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .modal-footer {
+            padding: 16px 24px 24px 24px;
+            background: transparent;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .btn-modal {
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+
+        .btn-modal.primary {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .btn-modal.primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-modal.secondary {
+            background: transparent;
+            color: var(--dark);
+        }
+
+        .btn-modal.secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-modal.danger {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger);
         }
 
         .modal-title {
@@ -979,9 +1039,12 @@
             height: 100%;
         }
 
-        .tool-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: #5A5B60;
+        .tool-item:hover,
+        .tool-item:focus {
+            background: rgba(var(--primary-rgb), 0.08);
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
         }
 
         @media(max-width: 650px) {
@@ -1038,10 +1101,11 @@
                     </div>
                 </div>
                 <div class="sidebar-actions">
-                    <button class="btn-sidebar-main" id="reset-btn-sidebar" title="Создать новую цепочку">
+                    <button class="btn-sidebar-main" id="reset-btn-sidebar" title="Создать новую цепочку (Alt + N)">
                         <i class="fas fa-plus"></i> Создать
                     </button>
-                    <button class="btn-sidebar-secondary" id="paste-chain-btn-sidebar" title="Импортировать цепочку">
+                    <button class="btn-sidebar-secondary" id="paste-chain-btn-sidebar"
+                        title="Импортировать цепочку (Alt + I)">
                         <i class="fas fa-file-import"></i> Импортировать
                     </button>
                 </div>
@@ -1068,15 +1132,16 @@
                 <div class="workspace-toolbar" id="workspace-toolbar">
                     <div class="workspace-title" id="workspace-title-display">
                         <i class="fas fa-desktop" style="color:var(--primary)"></i>
-                        <span id="workspace-title-text">Рабочая область</span>
+                        <span id="workspace-title-text">Новая цепочка</span>
                     </div>
                     <div class="actions">
-                        <button class="btn-toolbar" id="save-chain-btn" title="Сохранить текущую цепочку"><i
-                                class="fas fa-save"></i> Сохранить</button>
-                        <button class="btn-toolbar" id="share-chain-btn" title="Поделиться цепочкой"><i
+                        <button class="btn-toolbar" id="save-chain-btn" tabindex="-1"
+                            title="Сохранить текущую цепочку (Alt + S)"><i class="fas fa-save"></i> Сохранить</button>
+                        <button class="btn-toolbar" id="share-chain-btn" tabindex="-1" title="Поделиться цепочкой"><i
                                 class="fas fa-share-alt"></i> Поделиться</button>
-                        <button class="btn-toolbar" id="copy-chain-btn" title="Экспортировать настройки цепочки"><i
-                                class="fas fa-file-export"></i> Экспортировать</button>
+                        <button class="btn-toolbar" id="copy-chain-btn" tabindex="-1"
+                            title="Экспортировать настройки цепочки (Alt + E)"><i class="fas fa-file-export"></i>
+                            Экспортировать</button>
                     </div>
                 </div>
 
@@ -1089,7 +1154,7 @@
 
                     <!-- RESULT BLOCK -->
                     <div class="chain-container" style="padding-bottom: 20px;">
-                        <div class="block" style="border-left: 4px solid var(--success);">
+                        <div class="block" data-type="result" style="border-left: 4px solid var(--success);">
                             <div class="block-header">
                                 <div class="block-title"><i class="fas fa-flag-checkered"
                                         style="color:var(--success)"></i>
@@ -1142,6 +1207,22 @@
             </div>
             <div class="tool-list" id="tool-list">
                 <!-- Tool items generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- DIALOG MODAL (Alert/Confirm/Prompt) -->
+    <div id="dialog-modal" class="modal-overlay">
+        <div class="modal dialog">
+            <div class="modal-header">
+                <div class="modal-title" id="dialog-title">Подтверждение</div>
+                <button class="close-modal" id="close-dialog-btn">&times;</button>
+            </div>
+            <div class="dialog-body" id="dialog-body">
+                <!-- Message or Input here -->
+            </div>
+            <div class="modal-footer" id="dialog-footer">
+                <!-- Buttons here -->
             </div>
         </div>
     </div>
@@ -1686,6 +1767,151 @@
                 this.renderSavedChains();
 
                 document.getElementById('toggle-saved-btn').onclick = () => this.toggleSavedList();
+
+                // Global Key Listeners for Modals & Shortcuts
+                window.addEventListener('keydown', (e) => {
+                    // --- FOCUS TRAP LOGIC ---
+                    if (e.key === 'Tab') {
+                        const toolModal = document.getElementById('tool-modal');
+                        const dialogModal = document.getElementById('dialog-modal');
+                        let targetArea = null;
+
+                        if (dialogModal.classList.contains('active')) {
+                            targetArea = dialogModal;
+                        } else if (toolModal.classList.contains('active')) {
+                            targetArea = toolModal;
+                        } else {
+                            // Default: ONLY workspace main area (blocks), excluding toolbar
+                            targetArea = document.querySelector('main');
+                        }
+
+                        if (targetArea) {
+                            // Strictly pick only focusable elements that are NOT marked with tabindex="-1"
+                            const selector = 'button:not([tabindex="-1"]), [href]:not([tabindex="-1"]), input:not([tabindex="-1"]), select:not([tabindex="-1"]), textarea:not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
+                            const focusable = Array.from(targetArea.querySelectorAll(selector))
+                                .filter(el => {
+                                    const style = window.getComputedStyle(el);
+                                    return style.display !== 'none' && style.visibility !== 'hidden' && !el.disabled;
+                                });
+
+                            if (focusable.length > 0) {
+                                const first = focusable[0];
+                                const last = focusable[focusable.length - 1];
+
+                                if (e.shiftKey) { // Shift + Tab
+                                    if (document.activeElement === first || !targetArea.contains(document.activeElement)) {
+                                        last.focus();
+                                        e.preventDefault();
+                                    }
+                                } else { // Tab
+                                    if (document.activeElement === last || !targetArea.contains(document.activeElement)) {
+                                        first.focus();
+                                        e.preventDefault();
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Tool Modal Escape
+                    if (e.key === 'Escape') {
+                        const toolModal = document.getElementById('tool-modal');
+                        if (toolModal.classList.contains('active')) {
+                            this.closeToolModal();
+                        }
+
+                        const dialogModal = document.getElementById('dialog-modal');
+                        if (dialogModal.classList.contains('active')) {
+                            dialogModal.classList.remove('active');
+                        }
+                    }
+
+                    // Dialog Modal Enter (for Alert/Confim)
+                    if (e.key === 'Enter') {
+                        const dialogModal = document.getElementById('dialog-modal');
+                        if (dialogModal.classList.contains('active')) {
+                            // Find the primary button in the footer and click it
+                            const primaryBtn = dialogModal.querySelector('.btn-modal.primary');
+                            const activeInput = dialogModal.querySelector('input, textarea');
+                            // If it's a textarea, let Enter work normally unless Ctrl+Enter? 
+                            // Usually for simple dialogs we just want to confirm.
+                            if (primaryBtn && (!activeInput || activeInput.tagName !== 'TEXTAREA')) {
+                                primaryBtn.click();
+                                e.preventDefault();
+                            }
+                        }
+                    }
+
+                    // App Shortcuts - Only if no modals are open
+                    const anyModalActive = document.getElementById('tool-modal').classList.contains('active') ||
+                        document.getElementById('dialog-modal').classList.contains('active');
+                    if (anyModalActive) return;
+
+                    const isCtrl = e.ctrlKey || e.metaKey;
+                    const isAlt = e.altKey;
+
+                    // Alt + S or Ctrl + S (Save)
+                    if ((isAlt || isCtrl) && e.code === 'KeyS') {
+                        e.preventDefault();
+                        this.saveCurrentChain();
+                    }
+
+                    // Alt + N (New)
+                    if (!isCtrl && isAlt && e.code === 'KeyN') {
+                        e.preventDefault();
+                        this.clearChain();
+                    }
+
+                    // Alt + I (Import)
+                    if (!isCtrl && isAlt && e.code === 'KeyI') {
+                        e.preventDefault();
+                        this.importChain();
+                    }
+
+                    // Alt + E (Export)
+                    if (!isCtrl && isAlt && e.code === 'KeyE') {
+                        e.preventDefault();
+                        this.exportChain();
+                    }
+
+                    // Alt + R (Rename)
+                    if (!isCtrl && isAlt && e.code === 'KeyR' && this.currentChainId) {
+                        e.preventDefault();
+                        this.startEditingTitle();
+                    }
+
+                    // Block shortcuts (when focused inside a block)
+                    const blockEl = document.activeElement.closest('.block');
+                    if (blockEl && !anyModalActive) {
+                        const index = parseInt(blockEl.dataset.index);
+                        const isSource = index === 0;
+                        const isResult = blockEl.dataset.type === 'result';
+
+                        // Alt + A (Add After)
+                        if (!isCtrl && isAlt && e.code === 'KeyA') {
+                            if (!isResult) {
+                                e.preventDefault();
+                                this.openToolModal(index + 1);
+                            }
+                        }
+                        // Alt + B (Add Before)
+                        if (!isCtrl && isAlt && e.code === 'KeyB') {
+                            if (!isSource) {
+                                e.preventDefault();
+                                // If focused on result, add to the very end of chain
+                                const targetIdx = isResult ? this.chain.length : index;
+                                this.openToolModal(targetIdx);
+                            }
+                        }
+                        // Alt + Delete (Remove)
+                        if (!isCtrl && isAlt && (e.code === 'Delete' || e.code === 'Backspace')) {
+                            if (!isSource && !isResult) {
+                                e.preventDefault();
+                                this.removeBlock(index);
+                            }
+                        }
+                    }
+                });
             }
 
             toggleSavedList() {
@@ -1737,14 +1963,14 @@
                 const titleEl = document.getElementById('workspace-title-display');
                 if (!titleEl || this.isEditingTitle) return;
 
-                const name = this.currentChainName ? this.currentChainName : 'Рабочая область';
+                const name = this.currentChainName ? this.currentChainName : 'Новая цепочка';
                 titleEl.innerHTML = `<i class="fas fa-desktop" style="color:var(--primary)"></i> <span id="workspace-title-text">${name}</span>`;
 
                 // Update Page Title
                 document.title = this.currentChainName ? `${this.currentChainName} | StringLOM` : 'StringLOM';
 
                 titleEl.style.cursor = 'pointer';
-                titleEl.title = 'Нажмите, чтобы переименовать';
+                titleEl.title = 'Нажмите, чтобы переименовать (Alt + R)';
                 titleEl.onclick = () => this.startEditingTitle();
 
                 titleEl.onmouseover = () => { titleEl.style.color = 'var(--primary)'; };
@@ -1756,7 +1982,7 @@
                 this.isEditingTitle = true;
 
                 const titleEl = document.getElementById('workspace-title-display');
-                const currentName = this.currentChainName || 'Рабочая область';
+                const currentName = this.currentChainName || 'Новая цепочка';
 
                 titleEl.innerHTML = `
                     <div class="workspace-title-editor">
@@ -1787,6 +2013,93 @@
 
                 // Prevent triggering startEditingTitle again
                 titleEl.onclick = (e) => e.stopPropagation();
+            }
+
+            // --- CUSTOM DIALOGS ---
+            customDialog({ title, body, footer, onShow, isLarge }) {
+                const modal = document.getElementById('dialog-modal');
+                const modalContainer = modal.querySelector('.modal');
+                const titleEl = document.getElementById('dialog-title');
+                const bodyEl = document.getElementById('dialog-body');
+                const footerEl = document.getElementById('dialog-footer');
+                const closeBtn = document.getElementById('close-dialog-btn');
+
+                if (isLarge) modalContainer.classList.add('large');
+                else modalContainer.classList.remove('large');
+
+                titleEl.textContent = title || 'Подтверждение';
+                bodyEl.innerHTML = '';
+                if (typeof body === 'string') {
+                    bodyEl.innerHTML = `<div style="padding-top: 4px;">${body}</div>`;
+                } else if (body instanceof HTMLElement) {
+                    bodyEl.appendChild(body);
+                }
+
+                footerEl.innerHTML = '';
+                footer.forEach(btnDef => {
+                    const btn = document.createElement('button');
+                    btn.className = `btn-modal ${btnDef.type || 'secondary'}`;
+                    btn.textContent = btnDef.text;
+                    btn.onclick = () => {
+                        const shouldClose = btnDef.onClick ? btnDef.onClick() !== false : true;
+                        if (shouldClose) modal.classList.remove('active');
+                    };
+                    footerEl.appendChild(btn);
+                });
+
+                closeBtn.onclick = () => modal.classList.remove('active');
+                modal.classList.add('active');
+                if (onShow) onShow();
+            }
+
+            confirmAction(msg, onConfirm, isDanger = false) {
+                this.customDialog({
+                    title: 'Подтверждение',
+                    body: msg,
+                    footer: [
+                        { text: 'Отмена', type: 'secondary' },
+                        { text: 'Подтвердить', type: isDanger ? 'danger' : 'primary', onClick: onConfirm }
+                    ]
+                });
+            }
+
+            promptAction(msg, defaultValue, onConfirm, options = {}) {
+                const input = options.textarea ? document.createElement('textarea') : document.createElement('input');
+                if (!options.textarea) input.type = 'text';
+                input.value = defaultValue || '';
+                input.style.width = '100%';
+                input.style.marginTop = '15px';
+                input.style.boxSizing = 'border-box';
+                input.placeholder = options.placeholder || 'Введите значение...';
+                if (options.textarea) input.style.minHeight = '150px';
+
+                const wrapper = document.createElement('div');
+                wrapper.textContent = msg;
+                wrapper.appendChild(input);
+
+                this.customDialog({
+                    title: options.title || 'Ввод данных',
+                    body: wrapper,
+                    isLarge: options.isLarge,
+                    onShow: () => {
+                        input.focus();
+                        input.select();
+                    },
+                    footer: [
+                        { text: 'Отмена', type: 'secondary' },
+                        { text: 'ОК', type: 'primary', onClick: () => onConfirm(input.value) }
+                    ]
+                });
+            }
+
+            alertAction(msg, title = 'Внимание') {
+                this.customDialog({
+                    title: title,
+                    body: msg,
+                    footer: [
+                        { text: 'Закрыть', type: 'primary' }
+                    ]
+                });
             }
 
             cancelEditingTitle() {
@@ -1870,7 +2183,7 @@
                         setTimeout(() => btn.innerHTML = original, 1500);
                     });
                 } catch (e) {
-                    alert('Ошибка при создании ссылки');
+                    this.alertAction('Ошибка при создании ссылки');
                 }
             }
 
@@ -1906,26 +2219,27 @@
                     setTimeout(() => btn.innerHTML = original, 1500);
                 }).catch(err => {
                     // Fallback
-                    prompt('Скопируйте код цепочки (Ctrl+C):', txt);
+                    this.alertAction('Не удалось скопировать в буфер обмена. Используйте экспорт в файл или скопируйте вручную.', 'Экспорт');
                 });
             }
 
             importChain() {
-                const txt = prompt('Вставьте ранее скопированный код цепочки (JSON):');
-                if (!txt) return;
-                try {
-                    const importData = JSON.parse(txt);
-                    if (!Array.isArray(importData) || importData.length === 0 || importData[0].type !== 'source') {
-                        throw new Error('Некорректный формат цепочки');
+                this.promptAction('Вставьте ранее скопированный код цепочки (JSON):', '', (txt) => {
+                    if (!txt) return;
+                    try {
+                        const importData = JSON.parse(txt);
+                        if (!Array.isArray(importData) || importData.length === 0 || importData[0].type !== 'source') {
+                            throw new Error('Некорректный формат цепочки');
+                        }
+                        this.currentChainName = null;
+                        this.currentChainId = null;
+                        this.loadChainConfig(importData);
+                        this.updateWorkspaceTitle();
+                        this.renderSavedChains();
+                    } catch (e) {
+                        this.alertAction('Ошибка импорта: Неверный формат данных', 'Ошибка');
                     }
-                    this.currentChainName = null;
-                    this.currentChainId = null;
-                    this.loadChainConfig(importData);
-                    this.updateWorkspaceTitle();
-                    this.renderSavedChains();
-                } catch (e) {
-                    alert('Ошибка импорта: Неверный формат данных');
-                }
+                }, { textarea: true, title: 'Импорт цепочки', placeholder: '[{ "type": "source", ... }]', isLarge: true });
             }
 
             // --- LOCAL STORAGE LOGIC ---
@@ -1939,59 +2253,67 @@
 
             saveCurrentChain() {
                 let name = this.currentChainName;
-                if (!name) {
-                    name = prompt('Введите название для этой цепочки:');
-                    if (!name || !name.trim()) return;
-                }
+                const proceedSave = (targetName) => {
+                    const finalName = targetName.trim();
+                    const data = this.getChainConfig();
+                    const saved = this.getSavedChains();
 
-                const finalName = name.trim();
-                const data = this.getChainConfig();
-                const saved = this.getSavedChains();
+                    let idToSave = this.currentChainId || Date.now().toString();
+                    const existingIndex = saved.findIndex(x => x.name === finalName);
 
-                let idToSave = this.currentChainId || Date.now().toString();
-                const existingIndex = saved.findIndex(x => x.name === finalName);
-
-                if (existingIndex !== -1) {
-                    idToSave = saved[existingIndex].id;
-                    saved[existingIndex].data = data;
-                } else {
-                    if (this.currentChainId && saved.find(x => x.id === this.currentChainId)) {
-                        const idx = saved.findIndex(x => x.id === this.currentChainId);
-                        saved[idx].name = finalName;
-                        saved[idx].data = data;
+                    if (existingIndex !== -1) {
+                        idToSave = saved[existingIndex].id;
+                        const item = saved.splice(existingIndex, 1)[0];
+                        item.data = data;
+                        saved.unshift(item);
                     } else {
-                        idToSave = Date.now().toString();
-                        saved.push({ id: idToSave, name: finalName, data });
+                        if (this.currentChainId && saved.find(x => x.id === this.currentChainId)) {
+                            const idx = saved.findIndex(x => x.id === this.currentChainId);
+                            const item = saved.splice(idx, 1)[0];
+                            item.name = finalName;
+                            item.data = data;
+                            saved.unshift(item);
+                        } else {
+                            idToSave = Date.now().toString();
+                            saved.unshift({ id: idToSave, name: finalName, data });
+                        }
                     }
-                }
 
-                this.currentChainName = finalName;
-                this.currentChainId = idToSave;
+                    this.currentChainName = finalName;
+                    this.currentChainId = idToSave;
 
-                localStorage.setItem('strings_saved_chains', JSON.stringify(saved));
-                this.renderSavedChains();
-                this.updateWorkspaceTitle();
+                    localStorage.setItem('strings_saved_chains', JSON.stringify(saved));
+                    this.renderSavedChains();
+                    this.updateWorkspaceTitle();
 
-                const btn = document.getElementById('save-chain-btn');
-                if (btn) {
-                    const original = btn.innerHTML;
-                    btn.innerHTML = '<i class="fas fa-check" style="color:var(--success)"></i> Сохранено';
-                    setTimeout(() => btn.innerHTML = original, 1500);
+                    const btn = document.getElementById('save-chain-btn');
+                    if (btn) {
+                        const original = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check" style="color:var(--success)"></i> Сохранено';
+                        setTimeout(() => btn.innerHTML = original, 1500);
+                    }
+                };
+
+                if (!name) {
+                    this.promptAction('Введите название для этой цепочки:', '', proceedSave, { title: 'Сохранение цепочки' });
+                } else {
+                    proceedSave(name);
                 }
             }
 
             deleteSavedChain(id) {
-                if (!confirm('Точно удалить сохраненную цепочку?')) return;
-                let saved = this.getSavedChains();
-                saved = saved.filter(x => x.id !== id);
-                localStorage.setItem('strings_saved_chains', JSON.stringify(saved));
+                this.confirmAction('Точно удалить сохраненную цепочку?', () => {
+                    let saved = this.getSavedChains();
+                    saved = saved.filter(x => x.id !== id);
+                    localStorage.setItem('strings_saved_chains', JSON.stringify(saved));
 
-                if (this.currentChainId === id) {
-                    this.currentChainId = null;
-                    this.currentChainName = null;
-                    this.updateWorkspaceTitle();
-                }
-                this.renderSavedChains();
+                    if (this.currentChainId === id) {
+                        this.currentChainId = null;
+                        this.currentChainName = null;
+                        this.updateWorkspaceTitle();
+                    }
+                    this.renderSavedChains();
+                }, true);
             }
 
             loadChain(item) {
@@ -2159,7 +2481,7 @@
             }
 
             clearChain() {
-                if (confirm('Создать новую цепочку? Все несохраненные изменения текущей будут утеряны.')) {
+                this.confirmAction('Создать новую цепочку? Все несохраненные изменения текущей будут утеряны.', () => {
                     this.chain = [];
                     this.container.innerHTML = '';
                     this.currentChainName = null;
@@ -2167,7 +2489,7 @@
                     this.addBlock('source');
                     this.updateWorkspaceTitle();
                     this.renderSavedChains();
-                }
+                }, false);
             }
 
 
@@ -2240,6 +2562,7 @@
 
                 const el = document.createElement('div');
                 el.className = `block ${isSource ? 'source-block' : 'process-block'}`;
+                el.dataset.index = index;
                 if (canDrag) el.classList.add('draggable');
 
                 if (block.id === this.newBlockId) {
@@ -2302,21 +2625,21 @@
                     const addAboveBtn = document.createElement('button');
                     addAboveBtn.className = 'icon-btn';
                     addAboveBtn.innerHTML = '<div style="position:relative; display:inline-block;"><i class="fas fa-plus"></i><i class="fas fa-caret-up" style="position:absolute; top:-4px; right:-6px; font-size:0.6rem; opacity:0.8;"></i></div>';
-                    addAboveBtn.title = 'Добавить блок выше';
+                    addAboveBtn.title = 'Добавить блок выше (Alt + B)';
                     addAboveBtn.onclick = () => this.openToolModal(index);
                     actions.appendChild(addAboveBtn);
 
                     const addBelowBtn = document.createElement('button');
                     addBelowBtn.className = 'icon-btn';
                     addBelowBtn.innerHTML = '<div style="position:relative; display:inline-block;"><i class="fas fa-plus"></i><i class="fas fa-caret-down" style="position:absolute; bottom:-4px; right:-6px; font-size:0.6rem; opacity:0.8;"></i></div>';
-                    addBelowBtn.title = 'Добавить блок ниже';
+                    addBelowBtn.title = 'Добавить блок ниже (Alt + A)';
                     addBelowBtn.onclick = () => this.openToolModal(index + 1);
                     actions.appendChild(addBelowBtn);
 
                     const delBtn = document.createElement('button');
                     delBtn.className = 'icon-btn delete';
                     delBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                    delBtn.title = 'Удалить блок';
+                    delBtn.title = 'Удалить блок (Alt + Delete)';
                     delBtn.onclick = () => this.removeBlock(index);
                     actions.appendChild(delBtn);
                 }
@@ -2635,6 +2958,7 @@
                         if (!t) return;
                         const item = document.createElement('div');
                         item.className = 'tool-item';
+                        item.tabIndex = 0; // Make focusable
                         item.innerHTML = `
                             <i class="${t.icon}"></i>
                             <div class="tool-info">
@@ -2642,10 +2966,17 @@
                                 <p>${t.description}</p>
                             </div>
                         `;
-                        item.onclick = () => {
+                        const selectTool = () => {
                             this.addBlock(t.id, this.insertIndex);
                             this.closeToolModal();
-                        }
+                        };
+                        item.onclick = selectTool;
+                        item.onkeydown = (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                selectTool();
+                            }
+                        };
                         gridDiv.appendChild(item);
                     });
 
