@@ -4,10 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Конструктор текстовых утилит</title>
+    <title>StringLOM</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsonpath@1.1.1/jsonpath.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nunjucks/3.2.4/nunjucks.min.js"></script>
+    <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="shortcut icon" href="favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
     <style>
         /* СТИЛИ */
         :root {
@@ -61,15 +66,16 @@
 
         /* Скрываем скроллбар визуально по умолчанию, но оставляем поведение auto */
         .sidebar,
-        main {
+        .container {
             overflow-y: auto;
             overflow-y: overlay;
             scrollbar-width: thin;
             scrollbar-color: transparent transparent;
+            scrollbar-gutter: stable;
         }
 
         .sidebar:hover,
-        main:hover {
+        .container:hover {
             scrollbar-color: #444 transparent;
         }
 
@@ -94,17 +100,17 @@
 
         /* Для панелей делаем бегунок прозрачным пока нет ховера */
         .sidebar::-webkit-scrollbar-thumb,
-        main::-webkit-scrollbar-thumb {
+        .container::-webkit-scrollbar-thumb {
             background: transparent;
         }
 
         .sidebar:hover::-webkit-scrollbar-thumb,
-        main:hover::-webkit-scrollbar-thumb {
+        .container:hover::-webkit-scrollbar-thumb {
             background: #444;
         }
 
         .sidebar:hover::-webkit-scrollbar-thumb:hover,
-        main:hover::-webkit-scrollbar-thumb:hover {
+        .container:hover::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
 
@@ -113,7 +119,7 @@
             color: #fff;
             padding: 16px 24px;
             display: flex;
-            justify-content: flex-start;
+            justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
             z-index: 10;
@@ -127,6 +133,19 @@
             gap: 10px;
             margin: 0;
             font-weight: 500;
+        }
+
+        .github-link {
+            color: var(--dark);
+            font-size: 1.4rem;
+            transition: all 0.2s;
+            opacity: 0.7;
+        }
+
+        .github-link:hover {
+            color: var(--primary);
+            opacity: 1;
+            transform: scale(1.1);
         }
 
         .layout {
@@ -249,14 +268,16 @@
             background: var(--bg-main);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-y: auto;
             /* Было overflow-y: auto */
             border-radius: 0;
             box-shadow: none;
         }
 
         .workspace-toolbar {
-            background: var(--bg-main);
+            background: rgba(24, 25, 29, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             padding: 16px 24px;
             display: flex;
@@ -264,7 +285,7 @@
             align-items: center;
             position: sticky;
             top: 0;
-            z-index: 5;
+            z-index: 100;
         }
 
         .workspace-title {
@@ -318,6 +339,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow: visible;
         }
 
         /* CHAIN STYLES */
@@ -478,6 +500,11 @@
         .icon-btn:hover {
             background: rgba(255, 255, 255, 0.1);
             color: var(--dark);
+            text-decoration: none;
+        }
+
+        .icon-btn {
+            text-decoration: none;
         }
 
         .icon-btn.delete:hover {
@@ -825,7 +852,12 @@
 <body>
     <div class="app-wrapper">
         <header class="app-header">
-            <h1><i class="fas fa-layer-group"></i> Конструктор строк</h1>
+            <h1><img src="favicon.svg" alt="StringLOM Logo" style="width: 24px; height: 24px; vertical-align: middle;">
+                StringLOM</h1>
+            <a href="https://github.com/devnil777/string-lom" target="_blank" class="github-link"
+                title="Source code on GitHub">
+                <i class="fab fa-github"></i>
+            </a>
         </header>
 
         <div class="layout">
@@ -853,6 +885,8 @@
                                 class="fas fa-asterisk"></i> Создать</button>
                         <button class="btn-toolbar" id="save-chain-btn" title="Сохранить текущую цепочку"><i
                                 class="fas fa-save"></i> Сохранить</button>
+                        <button class="btn-toolbar" id="share-chain-btn" title="Поделиться цепочкой"><i
+                                class="fas fa-share-alt"></i> Поделиться</button>
                         <button class="btn-toolbar" id="copy-chain-btn" title="Экспортировать настройки цепочки"><i
                                 class="fas fa-file-export"></i> Экспортировать</button>
                     </div>
@@ -908,9 +942,7 @@
             </div>
         </div>
 
-        <footer class="app-footer">
-            &copy; 2026 Конструктор строк. Сконструировано с помощью ИИ.
-        </footer>
+        <!-- Footer removed -->
     </div>
 
     <!-- MODAL -->
@@ -942,6 +974,7 @@
                     { id: 'replacement', type: 'text', label: 'Replacement', placeholder: '[$1]', value: '' },
                     { id: 'flags', type: 'text', label: 'Flags', placeholder: 'g', value: 'g' }
                 ],
+                help: 'https://ru.wikipedia.org/wiki/Регулярные_выражения',
                 process: (lines, params) => {
                     if (!params.pattern) return { result: lines, stats: { msg: 'Pattern empty' } };
                     try {
@@ -1256,6 +1289,7 @@
                     { id: 'joinDelim', type: 'select', label: 'Разделитель склейки', options: [{ v: '\\n', l: 'Новая строка' }, { v: '', l: 'Без разделителя' }, { v: ' ', l: 'Пробел' }], value: '\\n' },
                     { id: 'stringify', type: 'checkbox', label: 'Оборачивать объекты в JSON', value: true }
                 ],
+                help: 'https://jsonpath.com/',
                 process: (lines, params) => {
                     if (typeof jsonpath === 'undefined') {
                         return { result: ['Библиотека jsonpath не загружена! Проверьте интернет-соединение.'], error: true };
@@ -1368,6 +1402,7 @@
                 params: [
                     { id: 'tpl', type: 'textarea', label: 'Шаблон Nunjucks (доступны body и lines)', value: '{% for line in lines %}\n- {{ line }}\n{% endfor %}' }
                 ],
+                help: 'https://mozilla.github.io/nunjucks/templating.html',
                 process: (lines, params) => {
                     try {
                         const res = nunjucks.renderString(params.tpl || '', {
@@ -1430,8 +1465,10 @@
                 document.getElementById('copy-chain-btn').onclick = () => this.exportChain();
                 document.getElementById('paste-chain-btn').onclick = () => this.importChain();
                 document.getElementById('save-chain-btn').onclick = () => this.saveCurrentChain();
+                document.getElementById('share-chain-btn').onclick = () => this.shareChain();
 
-                // Final result block events
+                // Check for shared link in URL
+                this.checkSharedLink();
                 const fDelim = document.getElementById('final-delimiter-select');
                 const fCustom = document.getElementById('final-custom-delimiter-input');
                 fDelim.addEventListener('change', () => {
@@ -1474,7 +1511,11 @@
             updateWorkspaceTitle() {
                 const titleEl = document.querySelector('.workspace-title');
                 if (titleEl) {
-                    titleEl.innerHTML = `<i class="fas fa-desktop" style="color:var(--primary)"></i> <span>${this.currentChainName ? this.currentChainName : 'Рабочая область'}</span>`;
+                    const name = this.currentChainName ? this.currentChainName : 'Рабочая область';
+                    titleEl.innerHTML = `<i class="fas fa-desktop" style="color:var(--primary)"></i> <span>${name}</span>`;
+
+                    // Update Page Title
+                    document.title = this.currentChainName ? `${this.currentChainName} | StringLOM` : 'StringLOM';
 
                     if (this.currentChainName) {
                         titleEl.style.cursor = 'pointer';
@@ -1518,8 +1559,9 @@
                 }));
             }
 
-            loadChainConfig(importData) {
-                const currentSourceValue = this.chain.length > 0 ? this.chain[0].value : 'Пример строки\nВторая строка\n123';
+            loadChainConfig(importData, clearData = false) {
+                const defaultSource = 'Пример строки\nВторая строка\n123';
+                const currentSourceValue = (this.chain.length > 0 && !clearData) ? this.chain[0].value : defaultSource;
 
                 this.chain = importData.map(blockData => {
                     return {
@@ -1531,6 +1573,46 @@
                 });
 
                 this.reRenderAll();
+            }
+
+            shareChain() {
+                const config = this.getChainConfig();
+                try {
+                    const json = JSON.stringify(config);
+                    const encoded = btoa(unescape(encodeURIComponent(json)));
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('chain', encoded);
+
+                    navigator.clipboard.writeText(url.toString()).then(() => {
+                        const btn = document.getElementById('share-chain-btn');
+                        const original = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check" style="color:var(--success)"></i> Скопировано';
+                        setTimeout(() => btn.innerHTML = original, 1500);
+                    });
+                } catch (e) {
+                    alert('Ошибка при создании ссылки');
+                }
+            }
+
+            checkSharedLink() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const sharedData = urlParams.get('chain');
+                if (sharedData) {
+                    try {
+                        const json = decodeURIComponent(escape(atob(sharedData)));
+                        const importData = JSON.parse(json);
+                        if (Array.isArray(importData) && importData.length > 0 && importData[0].type === 'source') {
+                            this.currentChainName = null;
+                            this.currentChainId = null;
+                            this.loadChainConfig(importData, true); // true to skip clearing if we want, but user said "без данных"
+
+                            // Cleanup URL without refreshing
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }
+                    } catch (e) {
+                        console.error('Failed to load shared chain', e);
+                    }
+                }
             }
 
             exportChain() {
@@ -1900,6 +1982,16 @@
                 actions.className = 'block-actions';
 
                 if (!isSource) {
+                    if (toolDef && toolDef.help) {
+                        const helpBtn = document.createElement('a');
+                        helpBtn.href = toolDef.help;
+                        helpBtn.target = '_blank';
+                        helpBtn.className = 'icon-btn';
+                        helpBtn.innerHTML = '<i class="fas fa-question-circle"></i>';
+                        helpBtn.title = 'Справка';
+                        actions.appendChild(helpBtn);
+                    }
+
                     const addAboveBtn = document.createElement('button');
                     addAboveBtn.className = 'icon-btn';
                     addAboveBtn.innerHTML = '<div style="position:relative; display:inline-block;"><i class="fas fa-plus"></i><i class="fas fa-caret-up" style="position:absolute; top:-4px; right:-6px; font-size:0.6rem; opacity:0.8;"></i></div>';
