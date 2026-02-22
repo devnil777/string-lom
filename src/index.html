@@ -69,20 +69,15 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            align-items: center;
         }
 
         .app-wrapper {
             background: var(--bg-body);
             width: 100%;
-            max-width: 1400px;
             display: flex;
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
-            border-left: 1px solid var(--border);
-            border-right: 1px solid var(--border);
         }
 
         /* Скрываем скроллбар визуально по умолчанию, но оставляем поведение auto */
@@ -185,26 +180,127 @@
             width: 280px;
             background: var(--bg-sidebar);
             border-right: 1px solid var(--border);
-            padding: 16px;
+            padding: 0;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .branding {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .branding img {
+            width: 28px;
+            height: 28px;
+        }
+
+        .sidebar-actions {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .btn-sidebar-main {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-sidebar-main:hover {
+            opacity: 0.9;
+        }
+
+        .btn-sidebar-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--dark);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-sidebar-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-content {
+            flex-grow: 1;
             overflow-y: auto;
-            border-radius: 0;
-            box-shadow: none;
-            height: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+        }
+
+        .sidebar-h2-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
 
         .sidebar h2 {
             font-size: 0.9rem;
             color: var(--gray);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 5px;
+            margin: 0;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+        }
+
+        .toggle-saved-btn {
+            background: transparent;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 0.8rem;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-saved-btn:hover {
+            color: var(--primary);
         }
 
         .saved-list {
@@ -299,7 +395,7 @@
             background: rgba(24, 25, 29, 0.7);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid transparent;
             padding: 16px 24px;
             display: flex;
             justify-content: space-between;
@@ -307,6 +403,63 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            transition: border-color 0.2s;
+        }
+
+        .workspace-toolbar.scrolled {
+            border-bottom-color: var(--border);
+        }
+
+        .workspace-title-editor {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .workspace-title-editor input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 0 10px;
+            border-radius: 4px;
+            font-size: 1rem;
+            width: 100%;
+            outline: none;
+            height: 32px;
+            box-sizing: border-box;
+        }
+
+        .workspace-title-editor input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-title-action {
+            background: transparent;
+            border: none;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .btn-title-action.confirm {
+            color: var(--success);
+        }
+
+        .btn-title-action.cancel {
+            color: var(--danger);
+        }
+
+        .btn-title-action:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .workspace-title {
@@ -316,6 +469,10 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            height: 32px;
+            /* Match button height */
+            line-height: normal;
+            box-sizing: border-box;
         }
 
         .workspace-toolbar .actions {
@@ -872,38 +1029,48 @@
 
 <body>
     <div class="app-wrapper">
-        <header class="app-header">
-            <h1><img src="favicon.svg" alt="StringLOM Logo" style="width: 24px; height: 24px; vertical-align: middle;">
-                StringLOM</h1>
-            <a href="https://github.com/devnil777/string-lom" target="_blank" class="github-link"
-                title="Source code on GitHub">
-                <i class="fab fa-github"></i>
-            </a>
-        </header>
-
         <div class="layout">
             <aside class="sidebar">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
-                    <h2 style="margin: 0;"><i class="fas fa-bookmark" style="color:var(--primary)"></i> Сохраненные
-                        цепочки</h2>
-                    <button class="icon-btn" id="paste-chain-btn" title="Импортировать (Вставить)"
-                        style="color: var(--primary); font-size: 1rem;">
-                        <i class="fas fa-plus"></i>
+                <div class="sidebar-header">
+                    <div class="branding">
+                        <img src="favicon.svg" alt="StringLOM Logo">
+                        <span>StringLOM</span>
+                    </div>
+                </div>
+                <div class="sidebar-actions">
+                    <button class="btn-sidebar-main" id="reset-btn-sidebar" title="Создать новую цепочку">
+                        <i class="fas fa-plus"></i> Создать
+                    </button>
+                    <button class="btn-sidebar-secondary" id="paste-chain-btn-sidebar" title="Импортировать цепочку">
+                        <i class="fas fa-file-import"></i> Импортировать
                     </button>
                 </div>
-                <div class="saved-list" id="saved-list">
-                    <!-- saved items will go here -->
+                <div class="sidebar-content">
+                    <div class="sidebar-h2-container">
+                        <h2>Сохраненные цепочки</h2>
+                        <button class="toggle-saved-btn" id="toggle-saved-btn" title="Свернуть/Развернуть">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
+                    </div>
+                    <div class="saved-list" id="saved-list">
+                        <!-- saved items will go here -->
+                    </div>
+                </div>
+                <div class="sidebar-footer">
+                    <a href="https://github.com/devnil777/string-lom" target="_blank" class="github-link"
+                        title="Source code on GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
                 </div>
             </aside>
 
             <div class="container">
-                <div class="workspace-toolbar">
-                    <div class="workspace-title" id="workspace-title-display"><i class="fas fa-desktop"
-                            style="color:var(--primary)"></i> <span>Рабочая область</span></div>
+                <div class="workspace-toolbar" id="workspace-toolbar">
+                    <div class="workspace-title" id="workspace-title-display">
+                        <i class="fas fa-desktop" style="color:var(--primary)"></i>
+                        <span id="workspace-title-text">Рабочая область</span>
+                    </div>
                     <div class="actions">
-                        <button class="btn-toolbar" id="reset-btn" title="Создать новую цепочку"><i
-                                class="fas fa-asterisk"></i> Создать</button>
                         <button class="btn-toolbar" id="save-chain-btn" title="Сохранить текущую цепочку"><i
                                 class="fas fa-save"></i> Сохранить</button>
                         <button class="btn-toolbar" id="share-chain-btn" title="Поделиться цепочкой"><i
@@ -1474,6 +1641,8 @@
 
                 this.currentChainName = null;
                 this.currentChainId = null;
+                this.isEditingTitle = false;
+                this.isSavedListCollapsed = false;
 
                 // Initialize Source Block if empty
                 this.addBlock('source');
@@ -1481,12 +1650,25 @@
                 this.setupModal();
 
                 // Bind buttons
-                document.getElementById('reset-btn').onclick = () => this.clearChain();
+                document.getElementById('reset-btn-sidebar').onclick = () => this.clearChain();
+                document.getElementById('paste-chain-btn-sidebar').onclick = () => this.importChain();
                 document.getElementById('close-modal-btn').onclick = () => this.closeToolModal();
-                document.getElementById('copy-chain-btn').onclick = () => this.exportChain();
-                document.getElementById('paste-chain-btn').onclick = () => this.importChain();
                 document.getElementById('save-chain-btn').onclick = () => this.saveCurrentChain();
                 document.getElementById('share-chain-btn').onclick = () => this.shareChain();
+                document.getElementById('copy-chain-btn').onclick = () => this.exportChain();
+
+                // Dynamic toolbar border on scroll
+                const container = document.querySelector('.container');
+                const toolbar = document.getElementById('workspace-toolbar');
+                if (container && toolbar) {
+                    container.onscroll = () => {
+                        if (container.scrollTop > 10) {
+                            toolbar.classList.add('scrolled');
+                        } else {
+                            toolbar.classList.remove('scrolled');
+                        }
+                    };
+                }
 
                 // Check for shared link in URL
                 this.checkSharedLink();
@@ -1501,6 +1683,13 @@
                 document.getElementById('download-final-btn').onclick = () => this.downloadFinalResult();
 
                 // Initial render of saved chains
+                this.renderSavedChains();
+
+                document.getElementById('toggle-saved-btn').onclick = () => this.toggleSavedList();
+            }
+
+            toggleSavedList() {
+                this.isSavedListCollapsed = !this.isSavedListCollapsed;
                 this.renderSavedChains();
             }
 
@@ -1545,33 +1734,88 @@
             }
 
             updateWorkspaceTitle() {
-                const titleEl = document.querySelector('.workspace-title');
-                if (titleEl) {
-                    const name = this.currentChainName ? this.currentChainName : 'Рабочая область';
-                    titleEl.innerHTML = `<i class="fas fa-desktop" style="color:var(--primary)"></i> <span>${name}</span>`;
+                const titleEl = document.getElementById('workspace-title-display');
+                if (!titleEl || this.isEditingTitle) return;
 
-                    // Update Page Title
-                    document.title = this.currentChainName ? `${this.currentChainName} | StringLOM` : 'StringLOM';
+                const name = this.currentChainName ? this.currentChainName : 'Рабочая область';
+                titleEl.innerHTML = `<i class="fas fa-desktop" style="color:var(--primary)"></i> <span id="workspace-title-text">${name}</span>`;
 
-                    if (this.currentChainName) {
-                        titleEl.style.cursor = 'pointer';
-                        titleEl.title = 'Нажмите, чтобы переименовать';
-                        titleEl.onclick = () => {
-                            const newName = prompt('Новое название цепочки:', this.currentChainName);
-                            if (newName && newName.trim() && newName.trim() !== this.currentChainName) {
-                                this.renameCurrentChain(newName.trim());
-                            }
-                        };
-                        titleEl.onmouseover = () => { titleEl.style.color = 'var(--primary)'; };
-                        titleEl.onmouseout = () => { titleEl.style.color = 'var(--dark)'; };
-                    } else {
-                        titleEl.style.cursor = 'default';
-                        titleEl.title = '';
-                        titleEl.onclick = null;
-                        titleEl.onmouseover = null;
-                        titleEl.onmouseout = null;
-                        titleEl.style.color = 'var(--dark)';
-                    }
+                // Update Page Title
+                document.title = this.currentChainName ? `${this.currentChainName} | StringLOM` : 'StringLOM';
+
+                titleEl.style.cursor = 'pointer';
+                titleEl.title = 'Нажмите, чтобы переименовать';
+                titleEl.onclick = () => this.startEditingTitle();
+
+                titleEl.onmouseover = () => { titleEl.style.color = 'var(--primary)'; };
+                titleEl.onmouseout = () => { titleEl.style.color = 'var(--dark)'; };
+            }
+
+            startEditingTitle() {
+                if (this.isEditingTitle) return;
+                this.isEditingTitle = true;
+
+                const titleEl = document.getElementById('workspace-title-display');
+                const currentName = this.currentChainName || 'Рабочая область';
+
+                titleEl.innerHTML = `
+                    <div class="workspace-title-editor">
+                        <i class="fas fa-desktop" style="color:var(--primary)"></i>
+                        <input type="text" id="workspace-title-input" value="${this.currentChainName || ''}" placeholder="Название цепочки..." autofocus>
+                        <button class="btn-title-action confirm" id="confirm-title-btn" title="Подтвердить"><i class="fas fa-check"></i></button>
+                        <button class="btn-title-action cancel" id="cancel-title-btn" title="Отмена"><i class="fas fa-times"></i></button>
+                    </div>
+                `;
+
+                const input = document.getElementById('workspace-title-input');
+                input.focus();
+                input.select();
+
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') this.applyTitleRename();
+                    if (e.key === 'Escape') this.cancelEditingTitle();
+                };
+
+                document.getElementById('confirm-title-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    this.applyTitleRename();
+                };
+                document.getElementById('cancel-title-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    this.cancelEditingTitle();
+                };
+
+                // Prevent triggering startEditingTitle again
+                titleEl.onclick = (e) => e.stopPropagation();
+            }
+
+            cancelEditingTitle() {
+                this.isEditingTitle = false;
+                this.updateWorkspaceTitle();
+            }
+
+            applyTitleRename() {
+                const input = document.getElementById('workspace-title-input');
+                const newName = input.value.trim();
+
+                if (!newName) {
+                    this.cancelEditingTitle();
+                    return;
+                }
+
+                if (newName === this.currentChainName) {
+                    this.cancelEditingTitle();
+                    return;
+                }
+
+                this.isEditingTitle = false;
+
+                if (this.currentChainId) {
+                    this.renameCurrentChain(newName);
+                } else {
+                    // Just set local name for now, will be saved to storage on click 'Save'
+                    this.currentChainName = newName;
+                    this.updateWorkspaceTitle();
                 }
             }
 
@@ -1760,8 +2004,19 @@
 
             renderSavedChains() {
                 const list = document.getElementById('saved-list');
+                const toggleBtn = document.getElementById('toggle-saved-btn');
                 const saved = this.getSavedChains();
                 list.innerHTML = '';
+
+                if (toggleBtn) {
+                    toggleBtn.innerHTML = this.isSavedListCollapsed ? '<i class="fas fa-chevron-down"></i>' : '<i class="fas fa-chevron-up"></i>';
+                }
+
+                if (this.isSavedListCollapsed) {
+                    list.style.display = 'none';
+                    return;
+                }
+                list.style.display = 'flex';
 
                 if (saved.length === 0) {
                     list.innerHTML = '<div style="color:var(--gray); font-size:0.85rem; text-align:center; margin-top: 10px;">Нет сохраненных</div>';
