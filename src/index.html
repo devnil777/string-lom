@@ -24,31 +24,7 @@
         content="StringLOM — визуальный конвейер для текста. Цепочки блоков: Regex, JSON, CSV, сортировка. Результат мгновенно, 100% в браузере.">
     <meta property="twitter:image" content="https://devnil777.github.io/string-lom/web-app-manifest-512x512.png">
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XC689R3CYJ"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-
-        gtag('config', 'G-XC689R3CYJ');
-    </script>
-
-    <!-- Yandex.Metrika counter -->
-    <script type="text/javascript">
-        (function (m, e, t, r, i, k, a) {
-            m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) };
-            m[i].l = 1 * new Date();
-            for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
-            k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a)
-        })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=106952040', 'ym');
-
-        ym(106952040, 'init', { ssr: true, webvisor: true, clickmap: true, ecommerce: "dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce: true, trackLinks: true });
-    </script>
-    <noscript>
-        <div><img src="https://mc.yandex.ru/watch/106952040" style="position:absolute; left:-9999px;" alt="" /></div>
-    </noscript>
-    <!-- /Yandex.Metrika counter -->
+    <!-- ANALYTICS_PLACEHOLDER -->
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsonpath@1.1.1/jsonpath.min.js"></script>
@@ -952,15 +928,15 @@
                                         style="color:var(--success)"></i>
                                     <span>Финальный результат</span>
                                 </div>
+                                <div class="block-actions">
+                                    <button class="icon-btn" id="download-final-btn" title="Скачать результат"
+                                        style="font-size: 1em;"><i class="fas fa-download"></i></button>
+                                    <button class="icon-btn" id="copy-final-btn" title="Копировать результат"
+                                        style="font-size: 1em;"><i class="fas fa-copy"></i></button>
+                                </div>
                             </div>
                             <div class="block-content">
-                                <div class="io-section">
-                                    <div
-                                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                                        <div class="io-label" style="margin-bottom: 0;">Итог</div>
-                                        <button class="icon-btn" id="copy-final-btn" title="Копировать результат"
-                                            style="font-size: 1em;"><i class="fas fa-copy"></i></button>
-                                    </div>
+                                <div class="io-section" style="margin-top: 5px;">
                                     <div class="result-box" id="final-output-box" style="min-height: 80px;"></div>
                                     <div class="stats" id="final-stats"></div>
                                 </div>
@@ -1522,6 +1498,7 @@
                 });
                 fCustom.addEventListener('input', () => this.runChain());
                 document.getElementById('copy-final-btn').onclick = () => this.copyFinalResult();
+                document.getElementById('download-final-btn').onclick = () => this.downloadFinalResult();
 
                 // Initial render of saved chains
                 this.renderSavedChains();
@@ -1547,6 +1524,20 @@
                     btn.innerHTML = '<i class="fas fa-check" style="color:var(--success)"></i>';
                     setTimeout(() => btn.innerHTML = original, 1500);
                 });
+            }
+
+            downloadFinalResult() {
+                const txt = document.getElementById('final-output-box').textContent;
+                if (!txt) return;
+                const blob = new Blob([txt], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (this.currentChainName || 'result') + '.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             }
 
             genId() {
@@ -2026,7 +2017,23 @@
                 const actions = document.createElement('div');
                 actions.className = 'block-actions';
 
-                if (!isSource) {
+                if (isSource) {
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.style.display = 'none';
+                    fileInput.addEventListener('change', (e) => {
+                        this.handleFileUpload(e.target.files[0], block);
+                    });
+
+                    const loadBtn = document.createElement('button');
+                    loadBtn.className = 'icon-btn';
+                    loadBtn.innerHTML = '<i class="fas fa-file-import"></i>';
+                    loadBtn.title = 'Загрузить из файла';
+                    loadBtn.onclick = () => fileInput.click();
+
+                    actions.appendChild(fileInput);
+                    actions.appendChild(loadBtn);
+                } else {
                     if (toolDef && toolDef.help) {
                         const helpBtn = document.createElement('a');
                         helpBtn.href = toolDef.help;
@@ -2073,11 +2080,36 @@
                     const textarea = document.createElement('textarea');
                     textarea.value = block.value;
                     textarea.rows = 5;
-                    textarea.placeholder = 'Введите текст здесь...';
+                    textarea.placeholder = 'Введите текст здесь (или перетащите файл сюда)...';
                     textarea.addEventListener('input', (e) => {
                         block.value = e.target.value;
                         this.runChain();
                     });
+
+                    // Drag & Drop for file
+                    textarea.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        textarea.style.borderColor = 'var(--primary)';
+                        textarea.style.background = 'rgba(71, 114, 250, 0.05)';
+                    });
+                    textarea.addEventListener('dragleave', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        textarea.style.borderColor = '';
+                        textarea.style.background = '';
+                    });
+                    textarea.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        textarea.style.borderColor = '';
+                        textarea.style.background = '';
+                        const files = e.dataTransfer.files;
+                        if (files && files.length > 0) {
+                            this.handleFileUpload(files[0], block);
+                        }
+                    });
+
                     group.appendChild(textarea);
                     content.appendChild(group);
 
@@ -2289,6 +2321,17 @@
                         finalStats.appendChild(badge);
                     }
                 }
+            }
+
+            handleFileUpload(file, block) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    block.value = content;
+                    this.reRenderAll();
+                };
+                reader.readAsText(file);
             }
 
             // MODAL LOGIC

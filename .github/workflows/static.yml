@@ -33,6 +33,12 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      - name: Inject Analytics
+        run: |
+          if [ -f "analytics-github.html" ]; then
+            sed -i '/<!-- ANALYTICS_PLACEHOLDER -->/r analytics-github.html' src/index.html
+          fi
+          sed -i '/<!-- ANALYTICS_PLACEHOLDER -->/d' src/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
