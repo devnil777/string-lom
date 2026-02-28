@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: base-url-2.1.0, playwright-0.7.2
+collected 18 items
+
+tests/test_extra.py xx.                                                  [ 16%]
+tests/test_tools.py .........                                            [ 66%]
+tests/test_ui.py ...x.x                                                  [100%]
+
+======================== 14 passed, 4 xfailed in 49.55s ========================

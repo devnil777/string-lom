@@ -1,0 +1,28 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "**Визуальный конвейерный редактор текста** — мощный браузерный инструмент для обработки, трансформации и анализа текстовых данных. Работает полностью локально, без отправки данных на сервер.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devnil777/string-lom.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/devnil777/string-lom/issues"
+  },
+  "homepage": "https://github.com/devnil777/string-lom#readme",
+  "dependencies": {
+    "jsonpath": "^1.2.1",
+    "nunjucks": "^3.2.4"
+  }
+}
