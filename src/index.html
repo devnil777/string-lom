@@ -32,7 +32,36 @@
                 <div class="sidebar-header">
                     <div class="branding">
                         <img src="assets/favicon.svg" alt="StringLOM Logo">
-                        <span>StringLOM <small id="app-version"><!-- VERSION_PLACEHOLDER --></small></span>
+                        <span>StringLOM</span>
+                    </div>
+                    <div class="app-menu">
+                        <button class="icon-btn" id="app-menu-btn" title="Меню">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                        <div class="app-menu-dropdown" id="app-menu-dropdown">
+                            <a href="https://github.com/devnil777/string-lom" target="_blank" class="menu-item">
+                                <i class="fab fa-github"></i>
+                                <span>Домашняя страница</span>
+                            </a>
+                            <a href="https://github.com/devnil777/string-lom/releases/latest" target="_blank"
+                                class="menu-item">
+                                <i class="fas fa-download"></i>
+                                <span>Скачать последний релиз</span>
+                            </a>
+                            <div class="menu-divider"></div>
+                            <div class="menu-item theme-item" id="theme-toggle-btn">
+                                <i class="fas fa-moon"></i>
+                                <span>Темная тема</span>
+                                <div class="switch">
+                                    <div class="switch-handle"></div>
+                                </div>
+                            </div>
+                            <div class="menu-divider"></div>
+                            <div class="menu-item version-item">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Версия: <small><!-- VERSION_PLACEHOLDER --></small></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="sidebar-actions">
@@ -54,13 +83,6 @@
                     <div class="saved-list" id="saved-list">
                         <!-- saved items will go here -->
                     </div>
-                </div>
-                <div class="sidebar-footer">
-                    <a href="https://github.com/devnil777/string-lom" target="_blank" class="github-link"
-                        title="Source code on GitHub">
-                        <i class="fab fa-github"></i>
-                    </a>
-                    <span id="app-version" class="app-version"></span>
                 </div>
             </aside>
 
@@ -140,6 +162,11 @@
             <div class="modal-header">
                 <div class="modal-title">Выберите инструмент</div>
                 <button class="close-modal" id="close-modal-btn">&times;</button>
+            </div>
+            <div class="modal-search-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" id="tool-search-input" placeholder="Поиск инструментов (от 2-х символов)..."
+                    autocomplete="off">
             </div>
             <div class="tool-list" id="tool-list">
                 <!-- Tool items generated here -->

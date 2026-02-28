@@ -12,11 +12,15 @@ class BlockApp {
         this.currentChainId = null;
         this.isEditingTitle = false;
         this.isSavedListCollapsed = false;
+        this.lastRemovedBlock = null;
+        this.undoTimer = null;
+        this.theme = 'dark'; // default
 
         // Initialize Source Block if empty
         this.addBlock('source');
 
         this.setupModal();
+        this.initTheme();
 
         // Bind buttons
         document.getElementById('reset-btn-sidebar').onclick = () => this.clearChain();
@@ -25,6 +29,14 @@ class BlockApp {
         document.getElementById('save-chain-btn').onclick = () => this.saveCurrentChain();
         document.getElementById('share-chain-btn').onclick = () => this.shareChain();
         document.getElementById('copy-chain-btn').onclick = () => this.exportChain();
+        document.getElementById('theme-toggle-btn').onclick = () => this.toggleTheme();
+
+        const searchInput = document.getElementById('tool-search-input');
+        if (searchInput) {
+            searchInput.oninput = (e) => {
+                this.setupModal(e.target.value);
+            };
+        }
 
         // Dynamic toolbar border on scroll
         const container = document.querySelector('.container');
@@ -51,10 +63,82 @@ class BlockApp {
         document.getElementById('copy-final-btn').onclick = () => this.copyFinalResult();
         document.getElementById('download-final-btn').onclick = () => this.downloadFinalResult();
 
+        // Drag events for result block
+        const resultBlock = document.querySelector('.block[data-type="result"]');
+        if (resultBlock) {
+            const resWrapper = resultBlock.closest('.chain-container');
+            if (resWrapper) {
+                resWrapper.classList.add('result-block-wrapper');
+                resWrapper.style.position = 'relative';
+                resWrapper.addEventListener('dragover', (e) => this.handleDragOver(e));
+                resWrapper.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                resWrapper.addEventListener('drop', (e) => this.handleDrop(e, -1)); // -1 means result block
+            }
+        }
+
         // Initial render of saved chains
         this.renderSavedChains();
 
         document.getElementById('toggle-saved-btn').onclick = () => this.toggleSavedList();
+
+        // App Menu Toggle
+        const menuBtn = document.getElementById('app-menu-btn');
+        const menuDropdown = document.getElementById('app-menu-dropdown');
+        if (menuBtn && menuDropdown) {
+            menuBtn.onclick = (e) => {
+                e.stopPropagation();
+
+                // Toggle active class
+                const isActive = menuDropdown.classList.toggle('active');
+
+                if (isActive) {
+                    menuDropdown.style.display = 'block';
+                    // Force reflow for transition
+                    menuDropdown.offsetHeight;
+                    menuDropdown.style.opacity = '1';
+                    menuDropdown.style.transform = 'translateY(0)';
+                } else {
+                    menuDropdown.style.opacity = '0';
+                    menuDropdown.style.transform = 'translateY(-8px)';
+                    setTimeout(() => {
+                        if (!menuDropdown.classList.contains('active')) {
+                            menuDropdown.style.display = 'none';
+                        }
+                    }, 200);
+                }
+            };
+
+            // Close menu on click outside
+            window.addEventListener('click', (e) => {
+                if (menuDropdown.classList.contains('active') && !menuDropdown.contains(e.target)) {
+                    menuDropdown.classList.remove('active');
+                    menuDropdown.style.opacity = '0';
+                    menuDropdown.style.transform = 'translateY(-8px)';
+                    setTimeout(() => {
+                        if (!menuDropdown.classList.contains('active')) {
+                            menuDropdown.style.display = 'none';
+                        }
+                    }, 200);
+                }
+            });
+
+            // Prevent closing when clicking inside dropdown, but allow items to trigger closing
+            menuDropdown.onclick = (e) => {
+                const target = e.target.closest('.menu-item');
+                // If we clicked a link or a menu item, close the menu
+                if (target && !target.id.includes('theme-toggle-btn')) {
+                    menuDropdown.classList.remove('active');
+                    menuDropdown.style.opacity = '0';
+                    menuDropdown.style.transform = 'translateY(-8px)';
+                    setTimeout(() => {
+                        if (!menuDropdown.classList.contains('active')) {
+                            menuDropdown.style.display = 'none';
+                        }
+                    }, 200);
+                }
+                e.stopPropagation();
+            };
+        }
 
         // Global Key Listeners for Modals & Shortcuts
         window.addEventListener('keydown', (e) => {
@@ -105,7 +189,13 @@ class BlockApp {
             if (e.key === 'Escape') {
                 const toolModal = document.getElementById('tool-modal');
                 if (toolModal.classList.contains('active')) {
-                    this.closeToolModal();
+                    const searchInput = document.getElementById('tool-search-input');
+                    if (searchInput && searchInput.value.length > 0) {
+                        searchInput.value = '';
+                        this.setupModal('');
+                    } else {
+                        this.closeToolModal();
+                    }
                 }
 
                 const dialogModal = document.getElementById('dialog-modal');
@@ -200,6 +290,50 @@ class BlockApp {
                 }
             }
         });
+    }
+
+    initTheme() {
+        const savedTheme = localStorage.getItem('stringlom_theme');
+        if (savedTheme) {
+            this.setTheme(savedTheme);
+        } else {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            this.setTheme(prefersDark ? 'dark' : 'light');
+        }
+    }
+
+    setTheme(theme) {
+        // Disable transitions for instant switch
+        document.body.classList.add('no-transitions');
+
+        this.theme = theme;
+        const btn = document.getElementById('theme-toggle-btn');
+        if (theme === 'light') {
+            document.body.classList.add('light-theme');
+            if (btn) {
+                btn.querySelector('i').className = 'fas fa-sun';
+                btn.querySelector('span').textContent = 'Светлая тема';
+            }
+        } else {
+            document.body.classList.remove('light-theme');
+            if (btn) {
+                btn.querySelector('i').className = 'fas fa-moon';
+                btn.querySelector('span').textContent = 'Темная тема';
+            }
+        }
+        localStorage.setItem('stringlom_theme', theme);
+
+        // Force reflow and remove the lock
+        requestAnimationFrame(() => {
+            // Need two frames to ensure the browser has painted without transitions
+            requestAnimationFrame(() => {
+                document.body.classList.remove('no-transitions');
+            });
+        });
+    }
+
+    toggleTheme() {
+        this.setTheme(this.theme === 'dark' ? 'light' : 'dark');
     }
 
     toggleSavedList() {
@@ -738,19 +872,72 @@ class BlockApp {
 
     removeBlock(index) {
         if (index === 0) {
-            alert('Нельзя удалить начальный блок!');
+            // Should not happen as delete button is hidden for source
             return;
         }
-        const block = this.chain[index];
-        document.getElementById(`wrapper-${block.id}`).remove();
+
+        // Save for undo
+        this.lastRemovedBlock = {
+            block: { ...this.chain[index] },
+            index: index
+        };
 
         this.chain.splice(index, 1);
 
-        // Re-calculate
+        // Re-calculate and re-render
         this.runChain();
+        this.reRenderAll();
 
-        // Re-index UI badges? 
-        // A full re-render is safer for indices, but let's just re-render all for simplicity to keep standard indices correct
+        this.showUndoToast();
+    }
+
+    showUndoToast() {
+        let toast = document.getElementById('undo-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'undo-toast';
+            toast.className = 'undo-toast';
+            document.body.appendChild(toast);
+        }
+
+        toast.innerHTML = `
+            <div class="undo-content">
+                <span>Блок удален</span>
+            </div>
+            <button class="undo-btn" id="undo-restore-btn">
+                Восстановить блок
+            </button>
+        `;
+
+        const btn = toast.querySelector('#undo-restore-btn');
+        btn.onclick = () => {
+            this.restoreBlock();
+            toast.classList.remove('active');
+        };
+
+        if (this.undoTimer) clearTimeout(this.undoTimer);
+
+        // Reset animation
+        toast.classList.remove('active');
+        void toast.offsetWidth;
+        toast.classList.add('active');
+
+        this.undoTimer = setTimeout(() => {
+            toast.classList.remove('active');
+        }, 5000);
+    }
+
+    restoreBlock() {
+        if (!this.lastRemovedBlock) return;
+
+        const { block, index } = this.lastRemovedBlock;
+        // Basic check if original index is still valid/appropriate 
+        // In a chain, simple splice usually works well enough
+        const targetIndex = Math.min(index, this.chain.length);
+        this.chain.splice(targetIndex, 0, block);
+        this.lastRemovedBlock = null;
+
+        this.runChain();
         this.reRenderAll();
     }
 
@@ -828,8 +1015,9 @@ class BlockApp {
             return;
         }
         this.draggedIndex = index;
-        const block = e.target.closest('.block');
-        block.classList.add('block-dragging');
+        const wrapper = e.target.closest('.block-wrapper');
+        const block = wrapper ? wrapper.querySelector('.block') : null;
+        if (wrapper) wrapper.classList.add('block-dragging');
         document.body.classList.add('dragging-active');
         e.dataTransfer.effectAllowed = 'move';
     }
@@ -837,41 +1025,87 @@ class BlockApp {
     handleDragOver(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        const target = e.target.closest('.block');
-        if (target && !target.classList.contains('source-block')) {
-            target.classList.add('drag-over');
+        const wrapper = e.target.closest('.block-wrapper, .result-block-wrapper');
+        if (!wrapper) return;
+
+        // Don't show line on the block being dragged
+        const draggedWrapper = document.querySelector('.block-dragging');
+        if (wrapper === draggedWrapper) return;
+
+        // Cleanup previous wrapper if we moved to a new one
+        if (this._lastDragOverWrapper && this._lastDragOverWrapper !== wrapper) {
+            this._lastDragOverWrapper.classList.remove('drag-over-top', 'drag-over-bottom');
+            delete this._lastDragOverWrapper._lastSide;
+        }
+        this._lastDragOverWrapper = wrapper;
+
+        const rect = wrapper.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const h = rect.height;
+
+        // Add a small 10% buffer to the midpoint to prevent rapid flickering
+        const threshold = h * 0.1;
+        const midpoint = h / 2;
+
+        let newSide = wrapper._lastSide || 'top';
+        if (y < midpoint - threshold) {
+            newSide = 'top';
+        } else if (y > midpoint + threshold) {
+            newSide = 'bottom';
+        }
+
+        if (wrapper._lastSide !== newSide) {
+            wrapper.classList.remove('drag-over-top', 'drag-over-bottom');
+            wrapper.classList.add(newSide === 'top' ? 'drag-over-top' : 'drag-over-bottom');
+            wrapper._lastSide = newSide;
+            this.dropSide = newSide;
         }
     }
 
     handleDragLeave(e) {
-        const target = e.target.closest('.block');
-        if (target) {
-            target.classList.remove('drag-over');
-        }
+        // We don't remove classes here anymore to prevent flickering 
+        // when moving between inner elements or near the pseudo-element.
+        // Classes are cleaned up in handleDragOver and handleDragEnd.
     }
 
     handleDrop(e, targetIndex) {
         e.preventDefault();
-        const target = e.target.closest('.block');
-        if (target) {
-            target.classList.remove('drag-over');
+
+        if (this.draggedIndex === null) return;
+
+        // Calculate insert point
+        let insertPos = (this.dropSide === 'top') ? targetIndex : targetIndex + 1;
+
+        // If targetIndex is special (result block)
+        if (targetIndex === -1) {
+            insertPos = this.chain.length;
         }
 
-        if (targetIndex === 0 || this.draggedIndex === targetIndex || this.draggedIndex === null) {
+        if (this.draggedIndex === insertPos || this.draggedIndex === insertPos - 1) {
+            this.handleDragEnd();
             return;
         }
 
         const movedItem = this.chain.splice(this.draggedIndex, 1)[0];
-        this.chain.splice(targetIndex, 0, movedItem);
+
+        if (this.draggedIndex < insertPos) {
+            insertPos--;
+        }
+
+        this.chain.splice(insertPos, 0, movedItem);
 
         this.draggedIndex = null;
-        document.body.classList.remove('dragging-active');
+        this.handleDragEnd();
         this.reRenderAll();
     }
 
     handleDragEnd() {
         document.body.classList.remove('dragging-active');
-        document.querySelectorAll('.block').forEach(b => b.classList.remove('block-dragging', 'drag-over'));
+        document.querySelectorAll('.block-wrapper, .result-block-wrapper').forEach(b => {
+            b.classList.remove('block-dragging', 'drag-over-top', 'drag-over-bottom');
+            delete b._lastSide;
+        });
+        this._lastDragOverWrapper = null;
     }
 
     renderBlock(block, index, parentElement) {
@@ -882,9 +1116,39 @@ class BlockApp {
         wrapper.className = 'block-wrapper';
         wrapper.id = `wrapper-${block.id}`;
 
-
-
         const canDrag = !isSource && this.chain.length > 2;
+
+        if (canDrag) {
+            const outerHandle = document.createElement('div');
+            outerHandle.className = 'drag-handle-outer';
+            outerHandle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
+            outerHandle.title = 'Потяните, чтобы переместить';
+            wrapper.appendChild(outerHandle);
+
+            wrapper.draggable = true;
+            wrapper.addEventListener('dragstart', (e) => {
+                const header = e.target.closest('.block-header');
+                const outer = e.target.closest('.drag-handle-outer');
+
+                if (header || outer || this._canDragNow) {
+                    this.handleDragStart(e, index);
+                } else {
+                    e.preventDefault();
+                }
+            });
+
+            wrapper.addEventListener('mousedown', (e) => {
+                const header = e.target.closest('.block-header');
+                const outer = e.target.closest('.drag-handle-outer');
+                const isBtn = e.target.closest('button, a, input, select, textarea');
+                this._canDragNow = !!((header || outer) && !isBtn);
+            });
+
+            wrapper.addEventListener('dragover', (e) => this.handleDragOver(e));
+            wrapper.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+            wrapper.addEventListener('drop', (e) => this.handleDrop(e, index));
+            wrapper.addEventListener('dragend', () => this.handleDragEnd());
+        }
 
         const el = document.createElement('div');
         el.className = `block ${isSource ? 'source-block' : 'process-block'}`;
@@ -899,24 +1163,14 @@ class BlockApp {
             }, 2000);
         }
 
-        if (canDrag) {
-            el.draggable = true;
-            el.addEventListener('dragstart', (e) => this.handleDragStart(e, index));
-            el.addEventListener('dragover', (e) => this.handleDragOver(e));
-            el.addEventListener('dragleave', (e) => this.handleDragLeave(e));
-            el.addEventListener('drop', (e) => this.handleDrop(e, index));
-            el.addEventListener('dragend', () => this.handleDragEnd());
-        }
-
         // HEADER
         const header = document.createElement('div');
         header.className = 'block-header';
 
         const title = document.createElement('div');
         title.className = 'block-title';
-        const dragHandle = canDrag ? '<i class="fas fa-grip-vertical drag-handle"></i>' : '';
         const badgeHtml = isSource ? '' : `<span class="badge">#${index}</span>`;
-        title.innerHTML = `${dragHandle}<i class="${toolDef.icon}"></i> <span>${toolDef.title}</span> ${badgeHtml}`;
+        title.innerHTML = `<i class="${toolDef.icon}"></i> <span>${toolDef.title}</span> ${badgeHtml}`;
 
         const actions = document.createElement('div');
         actions.className = 'block-actions';
@@ -1242,21 +1496,43 @@ class BlockApp {
     }
 
     // MODAL LOGIC
-    setupModal() {
+    setupModal(filter = '') {
         const list = document.getElementById('tool-list');
         list.innerHTML = '';
+        const query = filter.trim().toLowerCase();
+        const isFiltering = query.length >= 2;
 
         TOOL_CATEGORIES.forEach(cat => {
+            let toolsToShow = [];
+            if (isFiltering) {
+                // Ignore categories, just find all matching tools
+                cat.tools.forEach(tId => {
+                    const t = TOOLS.find(x => x.id === tId);
+                    if (t && (t.title.toLowerCase().includes(query) || t.description.toLowerCase().includes(query))) {
+                        toolsToShow.push(t);
+                    }
+                });
+            } else {
+                cat.tools.forEach(tId => {
+                    const t = TOOLS.find(x => x.id === tId);
+                    if (t) toolsToShow.push(t);
+                });
+            }
+
+            if (toolsToShow.length === 0) return;
+
             const catDiv = document.createElement('div');
             catDiv.className = 'tool-category';
-            catDiv.innerHTML = `<div class="tool-category-title">${cat.title}</div>`;
+            if (isFiltering) {
+                catDiv.style.display = 'contents'; // Just show items
+            } else {
+                catDiv.innerHTML = `<div class="tool-category-title">${cat.title}</div>`;
+            }
 
             const gridDiv = document.createElement('div');
             gridDiv.className = 'tool-category-grid';
 
-            cat.tools.forEach(tId => {
-                const t = TOOLS.find(x => x.id === tId);
-                if (!t) return;
+            toolsToShow.forEach(t => {
                 const item = document.createElement('div');
                 item.className = 'tool-item';
                 item.tabIndex = 0; // Make focusable
@@ -1266,16 +1542,36 @@ class BlockApp {
                         <h4>${t.title}</h4>
                         <p>${t.description}</p>
                     </div>
+                    <button class="btn-add-tool-only" title="Добавить без закрытия">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 `;
-                const selectTool = () => {
+
+                const selectTool = (shouldClose = true) => {
                     this.addBlock(t.id, this.insertIndex);
-                    this.closeToolModal();
+                    if (shouldClose) {
+                        this.closeToolModal();
+                    } else {
+                        // If we don't close, we might want to update the insertIndex if we are inserting in middle
+                        if (this.insertIndex !== null) {
+                            this.insertIndex++;
+                        }
+                    }
                 };
-                item.onclick = selectTool;
+
+                item.onclick = (e) => {
+                    if (e.target.closest('.btn-add-tool-only')) {
+                        e.stopPropagation();
+                        selectTool(false);
+                    } else {
+                        selectTool(true);
+                    }
+                };
+
                 item.onkeydown = (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        selectTool();
+                        selectTool(true);
                     }
                 };
                 gridDiv.appendChild(item);
@@ -1288,7 +1584,16 @@ class BlockApp {
 
     openToolModal(insertIndex = null) {
         this.insertIndex = insertIndex;
-        document.getElementById('tool-modal').classList.add('active');
+        const modal = document.getElementById('tool-modal');
+        modal.classList.add('active');
+
+        // Reset search
+        const searchInput = document.getElementById('tool-search-input');
+        if (searchInput) {
+            searchInput.value = '';
+            this.setupModal('');
+            setTimeout(() => searchInput.focus(), 100);
+        }
     }
 
     closeToolModal() {
