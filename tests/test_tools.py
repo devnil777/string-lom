@@ -91,11 +91,35 @@ def test_tool_join(page: Page, app_url: str):
     page.locator(".block.source-block textarea").fill("A\nB")
     add_tool(page, "Объединить строки (Join)")
 
-    # Use exact label match to avoid ambiguity with "Последний разделитель"
-    page.locator(".process-block label").filter(has_text=re.compile(r"^Разделитель$")).locator("..").locator("input").fill("-")
-    page.locator(".process-block label:has-text('Последний разделитель') + input").fill("&")
+    # primary delimiter: select custom then fill input
+    primary = page.locator(".process-block label").filter(has_text=re.compile(r"^Разделитель$"))
+    primary.locator("..").locator("select").select_option("custom")
+    primary.locator("..").locator("input").fill("-")
+
+    # last delimiter
+    last = page.locator(".process-block label").filter(has_text=re.compile(r"^Последний разделитель$"))
+    last.locator("..").locator("select").select_option("custom")
+    last.locator("..").locator("input").fill("&")
 
     expect(page.locator("#final-output-box")).to_have_text("A&B")
+
+def test_tool_compare_delimiter(page: Page, app_url: str):
+    page.goto(app_url)
+    page.evaluate("localStorage.clear()")
+    page.reload()
+    page.locator(".block.source-block textarea").fill("A\nB\nC")
+    add_tool(page, "Сравнение (Diff)")
+
+    # fill list2 text
+    page.locator(".process-block textarea").fill("A,B")
+    # choose comma delimiter via select
+    delim_label = page.locator(".process-block label").filter(has_text=re.compile(r"^Разделитель списка$"))
+    delim_label.locator("..").locator("select").select_option(",")
+    # ensure operation set to common
+    page.locator(".process-block select").last.select_option("common")
+
+    expect(page.locator("#final-output-box")).to_have_text("A")
+
 
 def test_tool_js_function(page: Page, app_url: str):
     page.goto(app_url)

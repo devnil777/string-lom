@@ -1,3 +1,13 @@
+// helper to normalize delimiter parameters
+function resolveDelimiter(params, id = 'delimiter', defaultVal = '\n') {
+    let val = params[id] !== undefined ? params[id] : defaultVal;
+    if (val === 'custom') {
+        val = params[id + 'Custom'] || '';
+    }
+    if (val === '\\n') return '\n';
+    return val || defaultVal;
+}
+
 const TOOLS = [
     {
         id: 'regex',
@@ -152,11 +162,12 @@ const TOOLS = [
         // Secondary input essentially acts as a parameter here since it's user provided
         params: [
             { id: 'list2', type: 'textarea', label: 'Список для сравнения', placeholder: 'Строки для сравнения...', value: '' },
-            { id: 'delimiter', type: 'select', label: 'Разделитель списка', options: [{ v: '\\n', l: 'Новая строка' }], value: '\\n' },
+            // delimiter for list B — generic delimiter parameter type handles options + custom value
+            { id: 'delimiter', type: 'delimiter', label: 'Разделитель списка', value: '\\n' },
             { id: 'operation', type: 'select', label: 'Показать', options: [{ v: 'common', l: 'Только общие' }, { v: 'diff', l: 'Только различия (A-B)' }, { v: 'all', l: 'Все с пометками' }], value: 'common' }
         ],
         process: (lines, params) => {
-            const delim = params.delimiter === '\\n' ? '\n' : params.delimiter;
+            const delim = resolveDelimiter(params, 'delimiter', '\n');
             const setA = new Set(lines.map(x => x.trim()).filter(x => x));
             const listB = (params.list2 || '').split(delim).map(x => x.trim()).filter(x => x);
             const setB = new Set(listB);
@@ -241,12 +252,12 @@ const TOOLS = [
         icon: 'fas fa-file-csv',
         description: 'Преобразование CSV в текст по шаблону',
         params: [
-            { id: 'delimiter', type: 'text', label: 'Разделитель CSV (; или ,)', value: ';' },
+            { id: 'delimiter', type: 'delimiter', label: 'Разделитель CSV (; или ,)', value: ';' },
             { id: 'template', type: 'text', label: 'Шаблон ($1, $2...)', value: '$1 - $2' },
             { id: 'skipHeader', type: 'checkbox', label: 'Пропустить заголовок', value: false }
         ],
         process: (lines, params) => {
-            const delim = params.delimiter || ';';
+            const delim = resolveDelimiter(params, 'delimiter', ';');
             const start = params.skipHeader ? 1 : 0;
             const validLines = lines.filter(l => l.trim());
 
@@ -452,8 +463,8 @@ const TOOLS = [
         description: 'Собирает список в одну строку',
         params: [
             { id: 'prefix', type: 'text', label: 'Первые символы', value: '' },
-            { id: 'delimiter', type: 'text', label: 'Разделитель', value: ', ' },
-            { id: 'lastDelimiter', type: 'text', label: 'Последний разделитель', value: ' и ' },
+            { id: 'delimiter', type: 'delimiter', label: 'Разделитель', value: ', ' },
+            { id: 'lastDelimiter', type: 'delimiter', label: 'Последний разделитель', value: ' и ' },
             { id: 'suffix', type: 'text', label: 'Последние символы', value: '' }
         ],
         process: (lines, params) => {
@@ -462,8 +473,8 @@ const TOOLS = [
             if (lines.length === 1) {
                 res = (params.prefix || '') + lines[0] + (params.suffix || '');
             } else {
-                const allButLast = lines.slice(0, -1).join(params.delimiter || '');
-                res = (params.prefix || '') + allButLast + (params.lastDelimiter || '') + lines[lines.length - 1] + (params.suffix || '');
+                const allButLast = lines.slice(0, -1).join(resolveDelimiter(params, 'delimiter', ''));
+                res = (params.prefix || '') + allButLast + (resolveDelimiter(params, 'lastDelimiter', '')) + lines[lines.length - 1] + (params.suffix || '');
             }
             return { result: [res], stats: {} };
         }
@@ -474,10 +485,10 @@ const TOOLS = [
         icon: 'fas fa-columns',
         description: 'Разбивает строки по разделителю',
         params: [
-            { id: 'delimiter', type: 'text', label: 'Разделитель', value: ',' }
+            { id: 'delimiter', type: 'delimiter', label: 'Разделитель', value: ',' }
         ],
         process: (lines, params) => {
-            const delim = params.delimiter || ',';
+            const delim = resolveDelimiter(params, 'delimiter', ',');
             const res = lines.flatMap(l => l.split(delim));
             return { result: res, stats: { count: res.length } };
         }

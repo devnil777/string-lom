@@ -1486,11 +1486,28 @@ class BlockApp {
                     grp.appendChild(lbl);
 
                     let field;
-                    const currentVal = block.params[param.id] !== undefined ? block.params[param.id] : param.value;
+                    let currentVal = block.params[param.id] !== undefined ? block.params[param.id] : param.value;
 
-                    if (param.type === 'select') {
+                    if (param.type === 'select' || param.type === 'delimiter') {
                         field = document.createElement('select');
-                        param.options.forEach(o => {
+                        const options = param.type === 'delimiter' ? [
+                            { v: '\\n', l: 'Новая строка' },
+                            { v: ',', l: 'Запятая' },
+                            { v: ';', l: 'Точка с запятой' },
+                            { v: ' ', l: 'Пробел' },
+                            { v: 'custom', l: 'Свой...' }
+                        ] : (param.options || []);
+                        // if current value is not one of the known options and we're delimiter type, treat it as custom
+                        if (param.type === 'delimiter' && currentVal !== undefined) {
+                            const knownVals = options.map(o => o.v);
+                            if (!knownVals.includes(currentVal)) {
+                                // assign custom storage key so it persists
+                                const customKey = `${param.id}Custom`;
+                                block.params[customKey] = currentVal;
+                                currentVal = 'custom';
+                            }
+                        }
+                        options.forEach(o => {
                             const opt = document.createElement('option');
                             opt.value = o.v;
                             opt.textContent = o.l;
@@ -1499,9 +1516,41 @@ class BlockApp {
                         });
                         field.addEventListener('change', (e) => {
                             block.params[param.id] = e.target.value;
+                            // if this is a delimiter parameter show/hide custom input
+                            if (param.type === 'delimiter') {
+                                if (e.target.value === 'custom') {
+                                    customDelimInput.style.display = 'block';
+                                } else {
+                                    customDelimInput.style.display = 'none';
+                                }
+                            }
                             this.runChain();
                             this.isModified = true;
                         });
+
+                        // generic custom input for delimiter type
+                        let customDelimInput;
+                        if (param.type === 'delimiter') {
+                            customDelimInput = document.createElement('input');
+                            customDelimInput.type = 'text';
+                            customDelimInput.placeholder = 'Текст...';
+                            customDelimInput.style.width = '120px';
+                            const customKey = `${param.id}Custom`;
+                            customDelimInput.value = block.params[customKey] || '';
+                            customDelimInput.style.display = field.value === 'custom' ? 'block' : 'none';
+                            customDelimInput.addEventListener('input', (e) => {
+                                block.params[customKey] = e.target.value;
+                                this.runChain();
+                                this.isModified = true;
+                            });
+                            // wrap existing field and the custom input in a flex container
+                            const wrapperFlex = document.createElement('div');
+                            wrapperFlex.style.display = 'flex';
+                            wrapperFlex.style.gap = '8px';
+                            wrapperFlex.appendChild(field);
+                            wrapperFlex.appendChild(customDelimInput);
+                            field = wrapperFlex; // replace field variable to appended later
+                        }
                     } else if (param.type === 'checkbox') {
                         const labelWrap = document.createElement('label');
                         labelWrap.className = 'toggle-switch';
