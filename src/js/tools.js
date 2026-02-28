@@ -486,14 +486,37 @@ const TOOLS = [
         id: 'add_line',
         title: 'Добавить строку',
         icon: 'fas fa-plus-square',
-        description: 'Добавляет строку в начало или конец списка',
+        description: 'Добавляет строки в начало, конец списка и/или между строк',
         params: [
-            { id: 'content', type: 'text', label: 'Текст строки', value: '' },
-            { id: 'position', type: 'select', label: 'Позиция', options: [{ v: 'start', l: 'В начало' }, { v: 'end', l: 'В конец' }], value: 'end' }
+            { id: 'startLine', type: 'text', label: 'Первая строка', value: '' },
+            { id: 'betweenLines', type: 'text', label: 'Между строк', value: '' },
+            { id: 'endLine', type: 'text', label: 'Последняя строка', value: '' }
         ],
         process: (lines, params) => {
-            const line = params.content || '';
-            const res = params.position === 'start' ? [line, ...lines] : [...lines, line];
+            let res = [];
+
+            // Поддержка старых цепочек для обратной совместимости
+            let start = params.startLine || '';
+            let between = params.betweenLines || '';
+            let end = params.endLine || '';
+
+            if (params.content !== undefined && params.position !== undefined) {
+                if (params.position === 'start' && !start) start = params.content;
+                if (params.position === 'between' && !between) between = params.content;
+                if (params.position === 'end' && !end) end = params.content;
+            }
+
+            if (start !== '') res.push(start);
+
+            for (let i = 0; i < lines.length; i++) {
+                res.push(lines[i]);
+                if (i < lines.length - 1 && between !== '') {
+                }
+                res.push(between);
+            }
+
+            if (end !== '') res.push(end);
+
             return { result: res, stats: {} };
         }
     },
@@ -822,6 +845,123 @@ const TOOLS = [
         }
     },
     {
+        id: 'encode',
+        title: 'Кодирование (Base64/URL)',
+        icon: 'fas fa-link',
+        description: 'Кодирование и декодирование (Base64, URL)',
+        params: [
+            {
+                id: 'mode', type: 'select', label: 'Действие', options: [
+                    { v: 'b64encode', l: 'Base64 Encode' },
+                    { v: 'b64decode', l: 'Base64 Decode' },
+                    { v: 'urlencode', l: 'URL Encode' },
+                    { v: 'urldecode', l: 'URL Decode' }
+                ], value: 'b64encode'
+            }
+        ],
+        process: (lines, params) => {
+            let errors = 0;
+            const res = lines.map(line => {
+                if (!line) return line;
+                try {
+                    if (params.mode === 'b64encode') {
+                        return btoa(unescape(encodeURIComponent(line)));
+                    } else if (params.mode === 'b64decode') {
+                        return decodeURIComponent(escape(atob(line)));
+                    } else if (params.mode === 'urlencode') {
+                        return encodeURIComponent(line);
+                    } else if (params.mode === 'urldecode') {
+                        return decodeURIComponent(line);
+                    }
+                } catch (e) {
+                    errors++;
+                    return `[Ошибка: ${e.message}]`;
+                }
+                return line;
+            });
+            return { result: res, stats: errors > 0 ? { errors } : {} };
+        }
+    },
+    {
+        id: 'hash',
+        title: 'Хеширование',
+        icon: 'fas fa-fingerprint',
+        description: 'Вычисляет CRC32, MD5, SHA-1, SHA-256, SHA-384, SHA-512',
+        params: [
+            {
+                id: 'algorithm', type: 'select', label: 'Алгоритм', options: [
+                    { v: 'crc32', l: 'CRC32' },
+                    { v: 'md5', l: 'MD5' },
+                    { v: 'sha1', l: 'SHA-1' },
+                    { v: 'sha224', l: 'SHA-224' },
+                    { v: 'sha256', l: 'SHA-256' },
+                    { v: 'sha384', l: 'SHA-384' },
+                    { v: 'sha512', l: 'SHA-512' },
+                    { v: 'sha3', l: 'SHA-3' },
+                    { v: 'ripemd160', l: 'RIPEMD-160' }
+                ], value: 'md5'
+            }
+        ],
+        process: (lines, params) => {
+            if (params.algorithm !== 'crc32' && typeof CryptoJS === 'undefined') {
+                return { result: ['Библиотека CryptoJS не загружена! Проверьте интернет-соединение.'], error: true };
+            }
+
+            const makeCRCTable = function () {
+                let c;
+                let crcTable = [];
+                for (let n = 0; n < 256; n++) {
+                    c = n;
+                    for (let k = 0; k < 8; k++) {
+                        c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+                    }
+                    crcTable[n] = c;
+                }
+                return crcTable;
+            };
+            let crcTable = null;
+
+            let errors = 0;
+            const res = lines.map(line => {
+                let h = '';
+                try {
+                    if (params.algorithm === 'crc32') {
+                        if (!crcTable) crcTable = makeCRCTable();
+                        let crc = 0 ^ (-1);
+                        const encoder = new TextEncoder();
+                        const bytes = encoder.encode(line);
+                        for (let i = 0; i < bytes.length; i++) {
+                            crc = (crc >>> 8) ^ crcTable[(crc ^ bytes[i]) & 0xFF];
+                        }
+                        const crcNum = (crc ^ (-1)) >>> 0;
+                        h = crcNum.toString(16).padStart(8, '0');
+                    } else if (params.algorithm === 'md5') {
+                        h = CryptoJS.MD5(line).toString();
+                    } else if (params.algorithm === 'sha1') {
+                        h = CryptoJS.SHA1(line).toString();
+                    } else if (params.algorithm === 'sha224') {
+                        h = CryptoJS.SHA224(line).toString();
+                    } else if (params.algorithm === 'sha256') {
+                        h = CryptoJS.SHA256(line).toString();
+                    } else if (params.algorithm === 'sha384') {
+                        h = CryptoJS.SHA384(line).toString();
+                    } else if (params.algorithm === 'sha512') {
+                        h = CryptoJS.SHA512(line).toString();
+                    } else if (params.algorithm === 'sha3') {
+                        h = CryptoJS.SHA3(line).toString();
+                    } else if (params.algorithm === 'ripemd160') {
+                        h = CryptoJS.RIPEMD160(line).toString();
+                    }
+                } catch (e) {
+                    errors++;
+                    return `[Ошибка: ${e.message}]`;
+                }
+                return h;
+            });
+            return { result: res, stats: errors > 0 ? { errors } : {} };
+        }
+    },
+    {
         id: 'debug_view',
         title: 'Отладка (Debug View)',
         icon: 'fas fa-bug',
@@ -846,19 +986,21 @@ const TOOLS = [
                 let s = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 if (params.showSpaces) s = s.replace(/ /g, '<span class="debug-char space">·</span>');
                 if (params.showTabs) s = s.replace(/\t/g, '<span class="debug-char tab">→</span>\t');
-                //                if (params.showLineBreaks) s = s + '<span class="debug-char break">↵</span>';
+
+                s = s.replace(/\r/g, '<span class="debug-char break">\\r</span>');
+                s = s.replace(/\n/g, '<span class="debug-char break">\\n</span>\n');
 
                 if (params.showLineNumbers) {
                     const num = (idx + 1).toString().padStart(maxDigits, ' ');
-                    s = `<span class="debug-line-num">${num}</span> ` + s;
+                    return `<div class="debug-line"><span class="debug-line-num">${num}</span><span class="debug-line-text">${s}</span></div>`;
                 }
-                return s;
+                return `<div class="debug-line"><span class="debug-line-text">${s}</span></div>`;
             });
 
             return {
                 result: lines,
                 stats: {
-                    '_html': visualized.join('\n') + (lines.length > 50 ? '\n...' : '')
+                    '_html': visualized.join('') + (lines.length > 50 ? '<div class="debug-line"><span class="debug-line-text">...</span></div>' : '')
                 }
             };
         }

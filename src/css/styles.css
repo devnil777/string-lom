@@ -933,6 +933,56 @@ label {
     color: var(--gray);
 }
 
+.toggle-switch {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    margin-top: 4px;
+}
+
+.toggle-switch input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 36px;
+    height: 20px;
+    padding: 0;
+    margin: 0;
+    background: var(--bg-body);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.toggle-switch input[type="checkbox"]:focus {
+    box-shadow: 0 0 0 2px var(--focus);
+}
+
+.toggle-switch input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 16px;
+    height: 16px;
+    background: var(--gray);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.toggle-switch input[type="checkbox"]:checked {
+    background: rgba(var(--primary-rgb), 0.15);
+    border-color: var(--primary);
+}
+
+.toggle-switch input[type="checkbox"]:checked::after {
+    transform: translateX(16px);
+    background: var(--primary);
+}
+
 input,
 select,
 textarea {
@@ -1405,9 +1455,12 @@ textarea:focus {
 .undo-btn:active {
     transform: scale(0.96);
 }
+
 /* DEBUG VIEW STYLES */
 .debug-preview {
     background: rgba(0, 0, 0, 0.2);
+    flex: 1 1 100%;
+    width: 100%;
     border: 1px solid var(--border);
     padding: 10px;
     border-radius: 4px;
@@ -1416,10 +1469,24 @@ textarea:focus {
     color: var(--dark);
     line-height: 1.5;
     overflow-x: auto;
-    white-space: pre;
     max-height: 300px;
     margin-bottom: 10px;
     text-align: left;
+}
+
+.light-theme .debug-preview {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: var(--border);
+}
+
+.debug-line {
+    display: flex;
+    align-items: stretch;
+}
+
+.debug-line-text {
+    white-space: pre;
+    word-wrap: break-word;
 }
 
 .debug-char {
@@ -1454,7 +1521,11 @@ textarea:focus {
     margin-right: 8px;
     border-right: 1px solid var(--border);
     user-select: none;
-    display: inline-block;
+    flex-shrink: 0;
     min-width: 2em;
     text-align: right;
+}
+
+.light-theme .debug-line-num {
+    background: rgba(0, 0, 0, 0.03);
 }

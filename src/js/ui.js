@@ -65,6 +65,8 @@ class BlockApp {
 
         // Check for shared link in URL
         this.checkSharedLink();
+        this.migrateSavedChains();
+        this.checkUrlForChainId();
         const fDelim = document.getElementById('final-delimiter-select');
         const fCustom = document.getElementById('final-custom-delimiter-input');
         fDelim.addEventListener('change', () => {
@@ -397,6 +399,15 @@ class BlockApp {
         return 'blk_' + (this.blockCounter++);
     }
 
+    genChainId() {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let id = '';
+        for (let i = 0; i < 8; i++) {
+            id += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return id;
+    }
+
     updateWorkspaceTitle() {
         const titleEl = document.getElementById('workspace-title-display');
         if (!titleEl || this.isEditingTitle) return;
@@ -407,16 +418,23 @@ class BlockApp {
         // Update Page Title
         document.title = this.currentChainName ? `${this.currentChainName} | StringLOM` : 'StringLOM';
 
-        titleEl.style.cursor = 'pointer';
-        titleEl.title = 'Нажмите, чтобы переименовать (Alt + R)';
-        titleEl.onclick = () => this.startEditingTitle();
-
-        titleEl.onmouseover = () => { titleEl.style.color = 'var(--primary)'; };
-        titleEl.onmouseout = () => { titleEl.style.color = 'var(--dark)'; };
+        if (this.currentChainName) {
+            titleEl.style.cursor = 'pointer';
+            titleEl.title = 'Нажмите, чтобы переименовать (Alt + R)';
+            titleEl.onclick = () => this.startEditingTitle();
+            titleEl.onmouseover = () => { titleEl.style.color = 'var(--primary)'; };
+            titleEl.onmouseout = () => { titleEl.style.color = 'var(--dark)'; };
+        } else {
+            titleEl.style.cursor = 'default';
+            titleEl.title = '';
+            titleEl.onclick = null;
+            titleEl.onmouseover = null;
+            titleEl.onmouseout = null;
+        }
     }
 
     startEditingTitle() {
-        if (this.isEditingTitle) return;
+        if (this.isEditingTitle || !this.currentChainName) return;
         this.isEditingTitle = true;
 
         const titleEl = document.getElementById('workspace-title-display');
@@ -649,6 +667,7 @@ class BlockApp {
             const json = JSON.stringify(config);
             const encoded = btoa(unescape(encodeURIComponent(json)));
             const url = new URL(window.location.href);
+            url.searchParams.delete('id');
             url.searchParams.set('chain', encoded);
 
             navigator.clipboard.writeText(url.toString()).then(() => {
@@ -675,12 +694,67 @@ class BlockApp {
                     this.currentChainId = null;
                     this.loadChainConfig(importData, true); // true to skip clearing
 
-                    // Cleanup URL without refreshing
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Cleanup URL parameter 'chain' without refreshing
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('chain');
+                    url.searchParams.delete('id');
+                    window.history.replaceState({}, document.title, url.toString());
                 }
             } catch (e) {
                 console.error('Failed to load shared chain', e);
             }
+        }
+    }
+
+    updateUrlWithChain(id) {
+        const url = new URL(window.location.href);
+        if (id) {
+            url.searchParams.set('id', id);
+        } else {
+            url.searchParams.delete('id');
+        }
+        window.history.replaceState({}, document.title, url.toString());
+    }
+
+    checkUrlForChainId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        if (id) {
+            const saved = this.getSavedChains();
+            const item = saved.find(x => x.id === id);
+            if (item) {
+                // Initial load
+                this.currentChainName = item.name;
+                this.currentChainId = item.id;
+                this.loadChainConfig(item.data);
+                this.updateWorkspaceTitle();
+                this.renderSavedChains();
+                this.isModified = false;
+            }
+        }
+    }
+
+    migrateSavedChains() {
+        let saved = this.getSavedChains();
+        const idRegex = /^[a-z0-9]{8}$/;
+        let changed = false;
+
+        saved = saved.map(item => {
+            if (!item.id || !idRegex.test(item.id)) {
+                // Generate new unique ID
+                let newId;
+                do {
+                    newId = this.genChainId();
+                } while (saved.some(s => s.id === newId));
+
+                item.id = newId;
+                changed = true;
+            }
+            return item;
+        });
+
+        if (changed) {
+            localStorage.setItem('strings_saved_chains', JSON.stringify(saved));
         }
     }
 
@@ -735,7 +809,7 @@ class BlockApp {
             const data = this.getChainConfig();
             const saved = this.getSavedChains();
 
-            let idToSave = this.currentChainId || Date.now().toString();
+            let idToSave = this.currentChainId || this.genChainId();
             const existingIndex = saved.findIndex(x => x.name === finalName);
 
             if (existingIndex !== -1) {
@@ -750,8 +824,9 @@ class BlockApp {
                     item.name = finalName;
                     item.data = data;
                     saved.unshift(item);
+                    idToSave = item.id;
                 } else {
-                    idToSave = Date.now().toString();
+                    idToSave = this.genChainId();
                     saved.unshift({ id: idToSave, name: finalName, data });
                 }
             }
@@ -762,6 +837,7 @@ class BlockApp {
             localStorage.setItem('strings_saved_chains', JSON.stringify(saved));
             this.renderSavedChains();
             this.updateWorkspaceTitle();
+            this.updateUrlWithChain(idToSave);
 
             const btn = document.getElementById('save-chain-btn');
             if (btn) {
@@ -789,6 +865,7 @@ class BlockApp {
                 this.currentChainId = null;
                 this.currentChainName = null;
                 this.updateWorkspaceTitle();
+                this.updateUrlWithChain(null);
             }
             this.renderSavedChains();
         }, true);
@@ -802,6 +879,7 @@ class BlockApp {
             this.updateWorkspaceTitle();
             this.renderSavedChains();
             this.isModified = false;
+            this.updateUrlWithChain(item.id);
         };
 
         if (this.isModified) {
@@ -1038,6 +1116,7 @@ class BlockApp {
             this.updateWorkspaceTitle();
             this.renderSavedChains();
             this.isModified = false;
+            this.updateUrlWithChain(null);
 
             if (btn) {
                 const original = btn.innerHTML;
@@ -1408,14 +1487,20 @@ class BlockApp {
                             this.isModified = true;
                         });
                     } else if (param.type === 'checkbox') {
-                        field = document.createElement('input');
-                        field.type = 'checkbox';
-                        field.checked = currentVal;
-                        field.addEventListener('change', (e) => {
+                        const labelWrap = document.createElement('label');
+                        labelWrap.className = 'toggle-switch';
+
+                        const inputField = document.createElement('input');
+                        inputField.type = 'checkbox';
+                        inputField.checked = currentVal;
+                        inputField.addEventListener('change', (e) => {
                             block.params[param.id] = e.target.checked;
                             this.runChain();
                             this.isModified = true;
                         });
+
+                        labelWrap.appendChild(inputField);
+                        field = labelWrap;
                     } else if (param.type === 'textarea') {
                         field = document.createElement('textarea');
                         field.value = currentVal;
@@ -1500,7 +1585,7 @@ class BlockApp {
                             if (res.stats) {
                                 // Rich content (previews, tables, etc.)
                                 if (res.stats._html) {
-                                    const debugPre = document.createElement('pre');
+                                    const debugPre = document.createElement('div');
                                     debugPre.className = 'debug-preview';
                                     debugPre.innerHTML = res.stats._html;
                                     statsDiv.appendChild(debugPre);
@@ -1658,6 +1743,10 @@ class BlockApp {
         this.insertIndex = insertIndex;
         const modal = document.getElementById('tool-modal');
         modal.classList.add('active');
+
+        // Reset scroll
+        const list = document.getElementById('tool-list');
+        if (list) list.scrollTop = 0;
 
         // Reset search
         const searchInput = document.getElementById('tool-search-input');

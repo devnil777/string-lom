@@ -17,7 +17,7 @@ const TOOL_CATEGORIES = [
     },
     {
         title: 'Работа с форматами',
-        tools: ['csv', 'json_format', 'json_path', 'split', 'to_hex', 'from_hex']
+        tools: ['csv', 'json_format', 'json_path', 'split', 'encode', 'hash', 'to_hex', 'from_hex']
     },
     {
         title: 'Сборка и шаблоны',
