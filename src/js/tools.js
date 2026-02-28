@@ -5,21 +5,48 @@ const TOOLS = [
         icon: 'fas fa-search',
         description: 'Замена по регулярному выражению',
         params: [
-            { id: 'pattern', type: 'text', label: 'Regex Pattern', placeholder: '\\d+', value: '\\d+' },
-            { id: 'replacement', type: 'text', label: 'Replacement', placeholder: '[$1]', value: '' },
-            { id: 'flags', type: 'text', label: 'Flags', placeholder: 'g', value: 'g' }
+            { id: 'pattern', type: 'text', label: 'Регулярное выражение', placeholder: '\\d+', value: '\\d+' },
+            { id: 'replacement', type: 'text', label: 'Заменить на', placeholder: '[$1]', value: '' },
+            { id: 'caseInsensitive', type: 'checkbox', label: 'Без учета регистра', value: false },
+            { id: 'onlyMatched', type: 'checkbox', label: 'Оставить только совпадения', value: false }
         ],
         help: 'https://ru.wikipedia.org/wiki/Регулярные_выражения',
         process: (lines, params) => {
-            if (!params.pattern) return { result: lines, stats: { msg: 'Pattern empty' } };
+            if (!params.pattern) return { result: lines, stats: { msg: 'Пустой паттерн' } };
             try {
-                const regex = new RegExp(params.pattern, params.flags || 'g');
+                const flags = 'gm' + (params.caseInsensitive ? 'i' : '');
+                const regex = new RegExp(params.pattern, flags);
+
                 let count = 0;
-                const result = lines.map(line => {
-                    const m = line.match(regex);
-                    if (m) count += m.length;
-                    return line.replace(regex, params.replacement || '');
-                });
+                let result = [];
+
+                if (params.onlyMatched) {
+                    result = lines.map(line => {
+                        const matches = [...line.matchAll(regex)];
+                        if (matches.length > 0) {
+                            const lineResults = matches.map(m => {
+                                count++;
+                                if (params.replacement) {
+                                    // Применяем замену к самому найденному совпадению
+                                    const singleRegex = new RegExp(params.pattern, flags.replace('g', ''));
+                                    return m[0].replace(singleRegex, params.replacement);
+                                } else {
+                                    return m[0];
+                                }
+                            });
+                            return lineResults.join('');
+                        } else {
+                            return '';
+                        }
+                    });
+                } else {
+                    result = lines.map(line => {
+                        const m = line.match(regex);
+                        if (m) count += m.length;
+                        return line.replace(regex, params.replacement || '');
+                    });
+                }
+
                 return { result, stats: { matches: count } };
             } catch (e) {
                 return { result: [e.message], error: true };
@@ -56,24 +83,65 @@ const TOOLS = [
         icon: 'fas fa-sort-alpha-down',
         description: 'Сортирует список',
         params: [
-            { id: 'order', type: 'select', label: 'Порядок', options: [{ v: 'asc', l: 'A-Z' }, { v: 'desc', l: 'Z-A' }, { v: 'num-asc', l: '0-9' }, { v: 'num-desc', l: '9-0' }], value: 'asc' }
+            {
+                id: 'mode', type: 'select', label: 'Режим', options: [
+                    { v: 'text', l: 'Текст' },
+                    { v: 'numeric', l: 'Числа' },
+                    { v: 'smart', l: 'Умная (Числа внутри)' }
+                ], value: 'text'
+            },
+            {
+                id: 'direction', type: 'select', label: 'Направление', options: [
+                    { v: 'asc', l: 'По возрастанию (A-Z)' },
+                    { v: 'desc', l: 'По убыванию (Z-A)' }
+                ], value: 'asc'
+            },
+            { id: 'caseInsensitive', type: 'checkbox', label: 'Игнорировать регистр', value: false }
         ],
         process: (lines, params) => {
             let items = [...lines].filter(x => x.trim());
+            const direction = params.direction === 'asc' ? 1 : -1;
+            const caseInsensitive = params.caseInsensitive;
 
-            if (params.order.includes('num')) {
+            const compareStrings = (s1, s2) => {
+                const collatorOptions = {
+                    numeric: params.mode === 'smart',
+                    sensitivity: caseInsensitive ? 'accent' : 'variant'
+                };
+                return s1.localeCompare(s2, undefined, collatorOptions);
+            };
+
+            if (params.mode === 'numeric') {
                 items.sort((a, b) => {
-                    const na = parseFloat(a);
-                    const nb = parseFloat(b);
-                    if (isNaN(na)) return 1;
-                    if (isNaN(nb)) return -1;
-                    return params.order === 'num-asc' ? na - nb : nb - na;
+                    const sA = a.trim();
+                    const sB = b.trim();
+                    const nA = Number(sA);
+                    const nB = Number(sB);
+                    const isANum = sA !== '' && !isNaN(nA);
+                    const isBNum = sB !== '' && !isNaN(nB);
+
+                    if (isANum && isBNum) return (nA - nB) * direction;
+                    if (isANum) return -1; // Числа всегда вначале
+                    if (isBNum) return 1;
+
+                    return compareStrings(a, b) * direction;
                 });
             } else {
-                items.sort((a, b) => params.order === 'asc' ? a.localeCompare(b) : b.localeCompare(a));
+                items.sort((a, b) => {
+                    return compareStrings(a, b) * direction;
+                });
             }
-
-            return { result: items, stats: { count: items.length } };
+            return { result: items, stats: {} };
+        }
+    },
+    {
+        id: 'reverse',
+        title: 'Разворот (Reverse)',
+        icon: 'fas fa-arrows-alt-v',
+        description: 'Переворачивает список строк в обратном порядке',
+        params: [],
+        process: (lines) => {
+            return { result: [...lines].reverse(), stats: {} };
         }
     },
     {
@@ -397,7 +465,7 @@ const TOOLS = [
                 const allButLast = lines.slice(0, -1).join(params.delimiter || '');
                 res = (params.prefix || '') + allButLast + (params.lastDelimiter || '') + lines[lines.length - 1] + (params.suffix || '');
             }
-            return { result: [res], stats: { original: lines.length } };
+            return { result: [res], stats: {} };
         }
     },
     {
@@ -472,6 +540,327 @@ const TOOLS = [
             } catch (e) {
                 return { result: [`Ошибка компиляции: ${e.message}`], error: true };
             }
+        }
+    },
+    {
+        id: 'shuffle',
+        title: 'Случайная сортировка',
+        icon: 'fas fa-random',
+        description: 'Перемешивает строки в случайном порядке',
+        params: [
+            { id: 'seed', type: 'text', label: 'Seed (число)', value: '' }
+        ],
+        init: (params) => {
+            if (!params.seed) {
+                params.seed = Math.floor(Math.random() * 1000000).toString();
+            }
+        },
+        process: (lines, params) => {
+            const seedVal = parseInt(params.seed) || 0;
+            const mulberry32 = (a) => {
+                return function () {
+                    let t = a += 0x6D2B79F5;
+                    t = Math.imul(t ^ t >>> 15, t | 1);
+                    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+                }
+            }
+            const random = mulberry32(seedVal);
+            const items = [...lines];
+            for (let i = items.length - 1; i > 0; i--) {
+                const j = Math.floor(random() * (i + 1));
+                [items[i], items[j]] = [items[j], items[i]];
+            }
+            return { result: items, stats: {} };
+        }
+    },
+    {
+        id: 'to_hex',
+        title: 'В HEX (To Hex)',
+        icon: 'fas fa-hashtag',
+        description: 'Преобразует текст в шестнадцатеричный код',
+        params: [
+            {
+                id: 'encoding', type: 'select', label: 'Кодировка', options: [
+                    { v: 'utf-8', l: 'UTF-8' },
+                    { v: 'utf-16le', l: 'UTF-16LE' },
+                    { v: 'utf-16be', l: 'UTF-16BE' },
+                    { v: 'win1251', l: 'Windows-1251' },
+                    { v: 'koi8-r', l: 'KOI8-R' },
+                    { v: 'cp866', l: 'CP866' }
+                ], value: 'utf-8'
+            },
+            {
+                id: 'format', type: 'select', label: 'Формат', options: [
+                    { v: 'plain', l: 'Слитная строка (xxyyzz)' },
+                    { v: 'spaced', l: 'Через пробел (xx yy zz)' },
+                    { v: 'dump', l: 'Дамп (смещение + 16 байт)' },
+                    { v: 'dump_ascii', l: 'Дамп + ASCII' }
+                ], value: 'spaced'
+            },
+            { id: 'uppercase', type: 'checkbox', label: 'Заглавные буквы (A-F)', value: true }
+        ],
+        process: (lines, params) => {
+            const res = [];
+            const encoder = new TextEncoder();
+
+            const win1251Encode = (str) => {
+                const arr = new Uint8Array(str.length);
+                for (let i = 0; i < str.length; i++) {
+                    const code = str.charCodeAt(i);
+                    if (code <= 127) arr[i] = code;
+                    else if (code >= 0x0410 && code <= 0x044F) arr[i] = code - 0x0350; // А-я
+                    else if (code === 0x0401) arr[i] = 168; // Ё
+                    else if (code === 0x0451) arr[i] = 184; // ё
+                    else arr[i] = 63; // '?'
+                }
+                return arr;
+            };
+
+            const koi8rEncode = (str) => {
+                const koi8Table = {
+                    'ё': 0xa3, 'Ё': 0xb3, 'а': 0xc1, 'б': 0xc2, 'в': 0xd7, 'г': 0xc7, 'д': 0xc4, 'е': 0xc5, 'ж': 0xd6, 'з': 0xda,
+                    'и': 0xc9, 'й': 0xca, 'к': 0xcb, 'л': 0xcc, 'м': 0xcd, 'н': 0xce, 'о': 0xcf, 'п': 0xd0, 'р': 0xd2, 'с': 0xd3,
+                    'т': 0xd4, 'у': 0xd5, 'ф': 0xc6, 'х': 0xc8, 'ц': 0xc3, 'ч': 0xde, 'ш': 0xdb, 'щ': 0xdd, 'ъ': 0xdf, 'ы': 0xd9,
+                    'ь': 0xd8, 'э': 0xdc, 'ю': 0xc0, 'я': 0xd1, 'А': 0xe1, 'Б': 0xe2, 'В': 0xf7, 'Г': 0xe7, 'Д': 0xe4, 'Е': 0xe5,
+                    'Ж': 0xf6, 'З': 0xfa, 'И': 0xe9, 'Й': 0xea, 'К': 0xeb, 'Л': 0xec, 'М': 0xed, 'Н': 0xee, 'О': 0xef, 'П': 0xf0,
+                    'Р': 0xf2, 'С': 0xf3, 'Т': 0xf4, 'У': 0xf5, 'Ф': 0xe6, 'Х': 0xe8, 'Ц': 0xe3, 'Ч': 0xfe, 'Ш': 0xfb, 'Щ': 0xfd,
+                    'Ъ': 0xff, 'Ы': 0xf9, 'Ь': 0xf8, 'Э': 0xfc, 'Ю': 0xe0, 'Я': 0xf1
+                };
+                const arr = new Uint8Array(str.length);
+                for (let i = 0; i < str.length; i++) {
+                    const char = str[i];
+                    const code = str.charCodeAt(i);
+                    if (code <= 127) arr[i] = code;
+                    else if (koi8Table[char]) arr[i] = koi8Table[char];
+                    else arr[i] = 63;
+                }
+                return arr;
+            };
+
+            const cp866Encode = (str) => {
+                const arr = new Uint8Array(str.length);
+                for (let i = 0; i < str.length; i++) {
+                    const code = str.charCodeAt(i);
+                    if (code <= 127) arr[i] = code;
+                    else if (code >= 0x0410 && code <= 0x042F) arr[i] = code - 0x0390; // А-П
+                    else if (code >= 0x0430 && code <= 0x043F) arr[i] = code - 0x0390; // а-п
+                    else if (code >= 0x0440 && code <= 0x044F) arr[i] = code - 0x0360; // р-я
+                    else if (code === 0x0401) arr[i] = 0xf0; // Ё
+                    else if (code === 0x0451) arr[i] = 0xf1; // ё
+                    else arr[i] = 63;
+                }
+                return arr;
+            };
+
+            lines.forEach(line => {
+                let bytes;
+                try {
+                    if (params.encoding === 'utf-8') {
+                        bytes = encoder.encode(line);
+                    } else if (params.encoding === 'utf-16le') {
+                        bytes = new Uint8Array(line.length * 2);
+                        for (let i = 0; i < line.length; i++) {
+                            const code = line.charCodeAt(i);
+                            bytes[i * 2] = code & 0xff;
+                            bytes[i * 2 + 1] = (code >> 8) & 0xff;
+                        }
+                    } else if (params.encoding === 'utf-16be') {
+                        bytes = new Uint8Array(line.length * 2);
+                        for (let i = 0; i < line.length; i++) {
+                            const code = line.charCodeAt(i);
+                            bytes[i * 2] = (code >> 8) & 0xff;
+                            bytes[i * 2 + 1] = code & 0xff;
+                        }
+                    } else if (params.encoding === 'win1251') {
+                        bytes = win1251Encode(line);
+                    } else if (params.encoding === 'koi8-r') {
+                        bytes = koi8rEncode(line);
+                    } else if (params.encoding === 'cp866') {
+                        bytes = cp866Encode(line);
+                    }
+                } catch (e) {
+                    res.push(`[Ошибка кодирования: ${e.message}]`);
+                    return;
+                }
+
+                if (!bytes) return;
+
+                const toHexStr = (b) => {
+                    let h = b.toString(16).padStart(2, '0');
+                    return params.uppercase ? h.toUpperCase() : h;
+                };
+
+                if (params.format === 'plain') {
+                    res.push(Array.from(bytes).map(toHexStr).join(''));
+                } else if (params.format === 'spaced') {
+                    res.push(Array.from(bytes).map(toHexStr).join(' '));
+                } else {
+                    const showAscii = params.format === 'dump_ascii';
+                    for (let i = 0; i < bytes.length; i += 16) {
+                        const chunk = bytes.slice(i, i + 16);
+                        const offset = i.toString(16).padStart(8, '0').toUpperCase();
+                        const hexParts = Array.from(chunk).map(toHexStr);
+
+                        // Add extra space after 8th byte for readability in dump
+                        let hexStr = "";
+                        for (let j = 0; j < hexParts.length; j++) {
+                            hexStr += hexParts[j] + (j === 7 ? "  " : " ");
+                        }
+
+                        const paddedHex = hexStr.padEnd(50, ' ');
+
+                        if (showAscii) {
+                            const ascii = Array.from(chunk).map(b => (b >= 32 && b <= 255) ? String.fromCharCode(b) : '.').join('');
+                            res.push(`${offset}: ${paddedHex} |${ascii}|`);
+                        } else {
+                            res.push(`${offset}: ${paddedHex}`);
+                        }
+                    }
+                }
+            });
+
+            return { result: res, stats: {} };
+        }
+    },
+    {
+        id: 'from_hex',
+        title: 'ИЗ HEX (From Hex)',
+        icon: 'fas fa-th-list',
+        description: 'Преобразует шестнадцатеричный код обратно в текст',
+        params: [
+            {
+                id: 'encoding', type: 'select', label: 'Кодировка байт', options: [
+                    { v: 'utf-8', l: 'UTF-8' },
+                    { v: 'utf-16le', l: 'UTF-16LE' },
+                    { v: 'utf-16be', l: 'UTF-16BE' },
+                    { v: 'win1251', l: 'Windows-1251' },
+                    { v: 'koi8-r', l: 'KOI8-R' },
+                    { v: 'cp866', l: 'CP866' }
+                ], value: 'utf-8'
+            }
+        ],
+        process: (lines, params) => {
+            const allHex = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                let hPart = line;
+                if (line.includes(':')) {
+                    const parts = line.split(':');
+                    // Everything after the first colon is the hex part, but before the optional |
+                    hPart = parts.slice(1).join(':').split('|')[0];
+                }
+
+                // Check for invalid characters in the hex part
+                const invalidMatches = hPart.match(/[^a-fA-F0-9\s]/g);
+                if (invalidMatches) {
+                    const uniqueInvalid = [...new Set(invalidMatches)];
+                    return {
+                        result: `Обнаружены недопустимые символы в HEX данных на строке ${i + 1}: ${uniqueInvalid.join(' ')}`,
+                        error: true
+                    };
+                }
+
+                const hexOnly = hPart.replace(/\s/g, '');
+                if (hexOnly.length && hexOnly.length % 2 !== 0) {
+                    return {
+                        result: `Неполный байт (нечетное количество символов) на строке ${i + 1}`,
+                        error: true
+                    };
+                }
+
+                for (let j = 0; j < hexOnly.length; j += 2) {
+                    allHex.push(parseInt(hexOnly.substr(j, 2), 16));
+                }
+            }
+
+            if (allHex.length === 0) {
+                return {
+                    result: 'HEX данные не найдены. Поддерживаемые форматы: "xx yy zz", "xxyyzz" или дамп "0000: xx yy zz |ascii|"',
+                    error: true
+                };
+            }
+
+            const bytes = new Uint8Array(allHex);
+            let decoded = "";
+
+            try {
+                if (params.encoding === 'utf-8') {
+                    decoded = new TextDecoder('utf-8').decode(bytes);
+                } else if (params.encoding === 'utf-16le') {
+                    decoded = new TextDecoder('utf-16le').decode(bytes);
+                } else if (params.encoding === 'utf-16be') {
+                    decoded = new TextDecoder('utf-16be').decode(bytes);
+                } else if (params.encoding === 'win1251') {
+                    decoded = new TextDecoder('windows-1251').decode(bytes);
+                } else if (params.encoding === 'koi8-r') {
+                    decoded = new TextDecoder('koi8-r').decode(bytes);
+                } else if (params.encoding === 'cp866') {
+                    try {
+                        decoded = new TextDecoder('ibm866').decode(bytes);
+                    } catch (e) {
+                        for (let i = 0; i < bytes.length; i++) {
+                            const b = bytes[i];
+                            if (b <= 127) decoded += String.fromCharCode(b);
+                            else if (b >= 128 && b <= 159) decoded += String.fromCharCode(b + 0x0390);
+                            else if (b >= 160 && b <= 175) decoded += String.fromCharCode(b + 0x0390);
+                            else if (b >= 224 && b <= 239) decoded += String.fromCharCode(b + 0x0360);
+                            else if (b === 0xf0) decoded += 'Ё';
+                            else if (b === 0xf1) decoded += 'ё';
+                            else decoded += '?';
+                        }
+                    }
+                }
+            } catch (e) {
+                return { result: [`Ошибка декодирования: ${e.message}`], error: true };
+            }
+
+            return { result: decoded.split('\n'), stats: { bytes: bytes.length } };
+        }
+    },
+    {
+        id: 'debug_view',
+        title: 'Отладка (Debug View)',
+        icon: 'fas fa-bug',
+        description: 'Визуализирует невидимые символы (пробелы, табы, переносы)',
+        params: [
+            { id: 'showSpaces', type: 'checkbox', label: 'Показывать пробелы (·)', value: true },
+            { id: 'showTabs', type: 'checkbox', label: 'Показывать табы (→)', value: true },
+            //            { id: 'showLineBreaks', type: 'checkbox', label: 'Показывать переносы (↵)', value: true },
+            { id: 'showLineNumbers', type: 'checkbox', label: 'Номера строк', value: false }
+        ],
+        process: (lines, params) => {
+            let spaces = 0;
+            let tabs = 0;
+
+            lines.forEach(line => {
+                spaces += (line.match(/ /g) || []).length;
+                tabs += (line.match(/\t/g) || []).length;
+            });
+
+            const maxDigits = lines.length.toString().length;
+            const visualized = lines.slice(0, 50).map((line, idx) => {
+                let s = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                if (params.showSpaces) s = s.replace(/ /g, '<span class="debug-char space">·</span>');
+                if (params.showTabs) s = s.replace(/\t/g, '<span class="debug-char tab">→</span>\t');
+                //                if (params.showLineBreaks) s = s + '<span class="debug-char break">↵</span>';
+
+                if (params.showLineNumbers) {
+                    const num = (idx + 1).toString().padStart(maxDigits, ' ');
+                    s = `<span class="debug-line-num">${num}</span> ` + s;
+                }
+                return s;
+            });
+
+            return {
+                result: lines,
+                stats: {
+                    '_html': visualized.join('\n') + (lines.length > 50 ? '\n...' : '')
+                }
+            };
         }
     }
 ];

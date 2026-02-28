@@ -882,6 +882,10 @@ class BlockApp {
             toolDef.params.forEach(p => {
                 block.params[p.id] = p.value;
             });
+            // Call tool-specific initialization if it exists
+            if (toolDef.init) {
+                toolDef.init(block.params);
+            }
         }
 
         if (insertIndex !== null) {
@@ -1494,12 +1498,29 @@ class BlockApp {
                         if (statsDiv) {
                             statsDiv.innerHTML = '';
                             if (res.stats) {
-                                Object.entries(res.stats).forEach(([k, v]) => {
-                                    const badge = document.createElement('span');
-                                    badge.className = 'badge';
-                                    badge.textContent = `${k}: ${v}`;
-                                    statsDiv.appendChild(badge);
-                                });
+                                // Rich content (previews, tables, etc.)
+                                if (res.stats._html) {
+                                    const debugPre = document.createElement('pre');
+                                    debugPre.className = 'debug-preview';
+                                    debugPre.innerHTML = res.stats._html;
+                                    statsDiv.appendChild(debugPre);
+                                }
+
+                                // Badges (standard key-value stats)
+                                const badgeEntries = Object.entries(res.stats).filter(([k]) => !k.startsWith('_'));
+                                if (badgeEntries.length > 0) {
+                                    const badges = document.createElement('div');
+                                    badges.className = 'stats-badges';
+                                    if (res.stats._html) badges.style.marginTop = '8px';
+
+                                    badgeEntries.forEach(([k, v]) => {
+                                        const badge = document.createElement('span');
+                                        badge.className = 'badge';
+                                        badge.textContent = `${k}: ${v}`;
+                                        badges.appendChild(badge);
+                                    });
+                                    statsDiv.appendChild(badges);
+                                }
                             }
                         }
                     }

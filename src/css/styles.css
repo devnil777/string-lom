@@ -1405,3 +1405,56 @@ textarea:focus {
 .undo-btn:active {
     transform: scale(0.96);
 }
+/* DEBUG VIEW STYLES */
+.debug-preview {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 4px;
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    font-size: 0.85rem;
+    color: var(--dark);
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 300px;
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+.debug-char {
+    display: inline-block;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
+    user-select: none;
+    pointer-events: none;
+}
+
+.debug-char.space {
+    color: var(--primary);
+    opacity: 0.6;
+}
+
+.debug-char.tab {
+    color: var(--success);
+    opacity: 0.8;
+}
+
+.debug-char.break {
+    color: var(--danger);
+    opacity: 0.7;
+    margin-left: 2px;
+}
+
+.debug-line-num {
+    color: var(--gray);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0 4px;
+    margin-right: 8px;
+    border-right: 1px solid var(--border);
+    user-select: none;
+    display: inline-block;
+    min-width: 2em;
+    text-align: right;
+}

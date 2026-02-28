@@ -9,7 +9,7 @@ const TOOL_CATEGORIES = [
     },
     {
         title: 'Порядок и сравнение',
-        tools: ['sort', 'compare']
+        tools: ['sort', 'reverse', 'shuffle', 'compare']
     },
     {
         title: 'Трансформация текста',
@@ -17,10 +17,10 @@ const TOOL_CATEGORIES = [
     },
     {
         title: 'Работа с форматами',
-        tools: ['csv', 'json_format', 'json_path', 'split']
+        tools: ['csv', 'json_format', 'json_path', 'split', 'to_hex', 'from_hex']
     },
     {
         title: 'Сборка и шаблоны',
-        tools: ['join', 'add_line', 'template', 'js_function']
+        tools: ['join', 'add_line', 'template', 'js_function', 'debug_view']
     }
 ];
