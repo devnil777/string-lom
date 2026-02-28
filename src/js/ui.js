@@ -15,12 +15,24 @@ class BlockApp {
         this.lastRemovedBlock = null;
         this.undoTimer = null;
         this.theme = 'dark'; // default
+        this.isModified = false;
 
         // Initialize Source Block if empty
         this.addBlock('source');
+        // Initial state is not modified
+        this.isModified = false;
 
         this.setupModal();
         this.initTheme();
+
+        // Browser warning on tab close
+        window.onbeforeunload = (e) => {
+            if (this.isModified) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        };
 
         // Bind buttons
         document.getElementById('reset-btn-sidebar').onclick = () => this.clearChain();
@@ -58,8 +70,12 @@ class BlockApp {
         fDelim.addEventListener('change', () => {
             fCustom.style.display = fDelim.value === 'custom' ? 'block' : 'none';
             this.runChain();
+            this.isModified = true;
         });
-        fCustom.addEventListener('input', () => this.runChain());
+        fCustom.addEventListener('input', () => {
+            this.runChain();
+            this.isModified = true;
+        });
         document.getElementById('copy-final-btn').onclick = () => this.copyFinalResult();
         document.getElementById('download-final-btn').onclick = () => this.downloadFinalResult();
 
@@ -624,6 +640,7 @@ class BlockApp {
         }
 
         this.reRenderAll();
+        this.isModified = false;
     }
 
     shareChain() {
@@ -752,6 +769,7 @@ class BlockApp {
                 btn.innerHTML = '<i class="fas fa-check" style="color:var(--success)"></i> Сохранено';
                 setTimeout(() => btn.innerHTML = original, 1500);
             }
+            this.isModified = false;
         };
 
         if (!name) {
@@ -777,11 +795,20 @@ class BlockApp {
     }
 
     loadChain(item) {
-        this.currentChainName = item.name;
-        this.currentChainId = item.id;
-        this.loadChainConfig(item.data);
-        this.updateWorkspaceTitle();
-        this.renderSavedChains();
+        const proceed = () => {
+            this.currentChainName = item.name;
+            this.currentChainId = item.id;
+            this.loadChainConfig(item.data);
+            this.updateWorkspaceTitle();
+            this.renderSavedChains();
+            this.isModified = false;
+        };
+
+        if (this.isModified) {
+            this.confirmAction('Переключиться на другую цепочку? Все несохраненные изменения текущей будут утеряны.', proceed, false);
+        } else {
+            proceed();
+        }
     }
 
     renderSavedChains() {
@@ -868,6 +895,7 @@ class BlockApp {
         }
 
         this.reRenderAll();
+        this.isModified = true;
     }
 
     removeBlock(index) {
@@ -887,6 +915,7 @@ class BlockApp {
         // Re-calculate and re-render
         this.runChain();
         this.reRenderAll();
+        this.isModified = true;
 
         this.showUndoToast();
     }
@@ -939,6 +968,7 @@ class BlockApp {
 
         this.runChain();
         this.reRenderAll();
+        this.isModified = true;
     }
 
     reRenderAll() {
@@ -994,7 +1024,8 @@ class BlockApp {
     }
 
     clearChain() {
-        this.confirmAction('Создать новую цепочку? Все несохраненные изменения текущей будут утеряны.', () => {
+        const btn = document.getElementById('reset-btn-sidebar');
+        const proceed = () => {
             this.chain = [];
             this.container.innerHTML = '';
             this.currentChainName = null;
@@ -1002,7 +1033,20 @@ class BlockApp {
             this.addBlock('source');
             this.updateWorkspaceTitle();
             this.renderSavedChains();
-        }, false);
+            this.isModified = false;
+
+            if (btn) {
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check" style="color:var(--success)"></i> Создано';
+                setTimeout(() => btn.innerHTML = original, 1500);
+            }
+        };
+
+        if (this.isModified) {
+            this.confirmAction('Создать новую цепочку? Все несохраненные изменения текущей будут утеряны.', proceed, false);
+        } else {
+            proceed();
+        }
     }
 
 
@@ -1097,6 +1141,7 @@ class BlockApp {
         this.draggedIndex = null;
         this.handleDragEnd();
         this.reRenderAll();
+        this.isModified = true;
     }
 
     handleDragEnd() {
@@ -1313,10 +1358,12 @@ class BlockApp {
                 block.params.delimiter = e.target.value;
                 customInput.style.display = e.target.value === 'custom' ? 'block' : 'none';
                 this.runChain();
+                this.isModified = true;
             });
             customInput.addEventListener('input', (e) => {
                 block.params.customDelimiter = e.target.value;
                 this.runChain();
+                this.isModified = true;
             });
 
             flexBox.appendChild(selDelim);
@@ -1354,6 +1401,7 @@ class BlockApp {
                         field.addEventListener('change', (e) => {
                             block.params[param.id] = e.target.value;
                             this.runChain();
+                            this.isModified = true;
                         });
                     } else if (param.type === 'checkbox') {
                         field = document.createElement('input');
@@ -1362,6 +1410,7 @@ class BlockApp {
                         field.addEventListener('change', (e) => {
                             block.params[param.id] = e.target.checked;
                             this.runChain();
+                            this.isModified = true;
                         });
                     } else if (param.type === 'textarea') {
                         field = document.createElement('textarea');
@@ -1370,6 +1419,7 @@ class BlockApp {
                         field.addEventListener('input', (e) => {
                             block.params[param.id] = e.target.value;
                             this.runChain();
+                            this.isModified = true;
                         });
                     } else {
                         field = document.createElement('input');
@@ -1378,6 +1428,7 @@ class BlockApp {
                         field.addEventListener('input', (e) => {
                             block.params[param.id] = e.target.value;
                             this.runChain();
+                            this.isModified = true;
                         });
                     }
 
