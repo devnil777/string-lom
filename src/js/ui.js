@@ -469,6 +469,14 @@ class BlockApp {
 
         // Prevent triggering startEditingTitle again
         titleEl.onclick = (e) => e.stopPropagation();
+
+        const outsideClickListener = (e) => {
+            if (this.isEditingTitle && !titleEl.contains(e.target)) {
+                this.cancelEditingTitle();
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', outsideClickListener), 0);
+        this._titleOutsideClickListener = outsideClickListener;
     }
 
     // --- CUSTOM DIALOGS ---
@@ -559,6 +567,10 @@ class BlockApp {
     }
 
     cancelEditingTitle() {
+        if (this._titleOutsideClickListener) {
+            document.removeEventListener('mousedown', this._titleOutsideClickListener);
+            this._titleOutsideClickListener = null;
+        }
         this.isEditingTitle = false;
         this.updateWorkspaceTitle();
     }
@@ -577,6 +589,10 @@ class BlockApp {
             return;
         }
 
+        if (this._titleOutsideClickListener) {
+            document.removeEventListener('mousedown', this._titleOutsideClickListener);
+            this._titleOutsideClickListener = null;
+        }
         this.isEditingTitle = false;
 
         if (this.currentChainId) {

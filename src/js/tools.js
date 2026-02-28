@@ -6,7 +6,7 @@ const TOOLS = [
         description: 'Замена по регулярному выражению',
         params: [
             { id: 'pattern', type: 'text', label: 'Регулярное выражение', placeholder: '\\d+', value: '\\d+' },
-            { id: 'replacement', type: 'text', label: 'Заменить на', placeholder: '[$1]', value: '' },
+            { id: 'replacement', type: 'text', label: 'Заменить на ($1, $2...)', placeholder: '[$1]', value: '' },
             { id: 'caseInsensitive', type: 'checkbox', label: 'Без учета регистра', value: false },
             { id: 'onlyMatched', type: 'checkbox', label: 'Оставить только совпадения', value: false }
         ],
@@ -151,9 +151,9 @@ const TOOLS = [
         description: 'Сравнить входящий текст со вторым списком',
         // Secondary input essentially acts as a parameter here since it's user provided
         params: [
-            { id: 'list2', type: 'textarea', label: 'Список B (для сравнения)', placeholder: 'Строки для сравнения...', value: '' },
-            { id: 'operation', type: 'select', label: 'Показать', options: [{ v: 'common', l: 'Только общие' }, { v: 'diff', l: 'Только различия (A-B)' }, { v: 'all', l: 'Все с пометками' }], value: 'common' },
-            { id: 'delimiter', type: 'select', label: 'Разделитель списка B', options: [{ v: '\\n', l: 'Новая строка' }], value: '\\n' }
+            { id: 'list2', type: 'textarea', label: 'Список для сравнения', placeholder: 'Строки для сравнения...', value: '' },
+            { id: 'delimiter', type: 'select', label: 'Разделитель списка', options: [{ v: '\\n', l: 'Новая строка' }], value: '\\n' },
+            { id: 'operation', type: 'select', label: 'Показать', options: [{ v: 'common', l: 'Только общие' }, { v: 'diff', l: 'Только различия (A-B)' }, { v: 'all', l: 'Все с пометками' }], value: 'common' }
         ],
         process: (lines, params) => {
             const delim = params.delimiter === '\\n' ? '\n' : params.delimiter;
