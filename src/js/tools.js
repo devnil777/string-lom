@@ -11,18 +11,18 @@ function resolveDelimiter(params, id = 'delimiter', defaultVal = '\n') {
 const TOOLS = [
     {
         id: 'regex',
-        title: 'Поиск и замена (Regex)',
+        title: 'tool_regex_title',
         icon: 'fas fa-search',
-        description: 'Замена по регулярному выражению',
+        description: 'tool_regex_desc',
         params: [
-            { id: 'pattern', type: 'text', label: 'Регулярное выражение', placeholder: '\\d+', value: '\\d+' },
-            { id: 'replacement', type: 'text', label: 'Заменить на ($1, $2...)', placeholder: '[$1]', value: '' },
-            { id: 'caseInsensitive', type: 'checkbox', label: 'Без учета регистра', value: false },
-            { id: 'onlyMatched', type: 'checkbox', label: 'Оставить только совпадения', value: false }
+            { id: 'pattern', type: 'text', label: 'tool_regex_pattern', placeholder: '\\d+', value: '\\d+' },
+            { id: 'replacement', type: 'text', label: 'tool_regex_replacement', placeholder: '[$1]', value: '' },
+            { id: 'caseInsensitive', type: 'checkbox', label: 'tool_regex_case', value: false },
+            { id: 'onlyMatched', type: 'checkbox', label: 'tool_regex_only_matched', value: false }
         ],
-        help: 'https://ru.wikipedia.org/wiki/Регулярные_выражения',
+        help: 'https://en.wikipedia.org/wiki/Regular_expression',
         process: (lines, params) => {
-            if (!params.pattern) return { result: lines, stats: { msg: 'Пустой паттерн' } };
+            if (!params.pattern) return { result: lines, stats: { msg: i18n.t('tool_regex_empty') } };
             try {
                 const flags = 'gm' + (params.caseInsensitive ? 'i' : '');
                 const regex = new RegExp(params.pattern, flags);
@@ -37,7 +37,7 @@ const TOOLS = [
                             const lineResults = matches.map(m => {
                                 count++;
                                 if (params.replacement) {
-                                    // Применяем замену к самому найденному совпадению
+                                    // Apply replacement to the match itself
                                     const singleRegex = new RegExp(params.pattern, flags.replace('g', ''));
                                     return m[0].replace(singleRegex, params.replacement);
                                 } else {
@@ -65,11 +65,11 @@ const TOOLS = [
     },
     {
         id: 'deduplicate',
-        title: 'Удаление дубликатов',
+        title: 'tool_dedup_title',
         icon: 'fas fa-clone',
-        description: 'Оставляет только уникальные строки',
+        description: 'tool_dedup_desc',
         params: [
-            { id: 'trim', type: 'checkbox', label: 'Trim пробелы', value: true }
+            { id: 'trim', type: 'checkbox', label: 'tool_dedup_trim', value: true }
         ],
         process: (lines, params) => {
             const unique = new Set();
@@ -89,24 +89,24 @@ const TOOLS = [
     },
     {
         id: 'sort',
-        title: 'Сортировка',
+        title: 'tool_sort_title',
         icon: 'fas fa-sort-alpha-down',
-        description: 'Сортирует список',
+        description: 'tool_sort_desc',
         params: [
             {
-                id: 'mode', type: 'select', label: 'Режим', options: [
-                    { v: 'text', l: 'Текст' },
-                    { v: 'numeric', l: 'Числа' },
-                    { v: 'smart', l: 'Умная (Числа внутри)' }
+                id: 'mode', type: 'select', label: 'tool_sort_mode', options: [
+                    { v: 'text', l: 'tool_sort_text' },
+                    { v: 'numeric', l: 'tool_sort_numeric' },
+                    { v: 'smart', l: 'tool_sort_smart' }
                 ], value: 'text'
             },
             {
-                id: 'direction', type: 'select', label: 'Направление', options: [
-                    { v: 'asc', l: 'По возрастанию (A-Z)' },
-                    { v: 'desc', l: 'По убыванию (Z-A)' }
+                id: 'direction', type: 'select', label: 'tool_sort_direction', options: [
+                    { v: 'asc', l: 'tool_sort_asc' },
+                    { v: 'desc', l: 'tool_sort_desc' }
                 ], value: 'asc'
             },
-            { id: 'caseInsensitive', type: 'checkbox', label: 'Игнорировать регистр', value: false }
+            { id: 'caseInsensitive', type: 'checkbox', label: 'tool_sort_case', value: false }
         ],
         process: (lines, params) => {
             let items = [...lines].filter(x => x.trim());
@@ -118,7 +118,7 @@ const TOOLS = [
                     numeric: params.mode === 'smart',
                     sensitivity: caseInsensitive ? 'accent' : 'variant'
                 };
-                return s1.localeCompare(s2, undefined, collatorOptions);
+                return s1.localeCompare(s2, i18n.locale, collatorOptions);
             };
 
             if (params.mode === 'numeric') {
@@ -131,7 +131,7 @@ const TOOLS = [
                     const isBNum = sB !== '' && !isNaN(nB);
 
                     if (isANum && isBNum) return (nA - nB) * direction;
-                    if (isANum) return -1; // Числа всегда вначале
+                    if (isANum) return -1; // Numbers always first
                     if (isBNum) return 1;
 
                     return compareStrings(a, b) * direction;
@@ -146,9 +146,9 @@ const TOOLS = [
     },
     {
         id: 'reverse',
-        title: 'Разворот (Reverse)',
+        title: 'tool_reverse_title',
         icon: 'fas fa-arrows-alt-v',
-        description: 'Переворачивает список строк в обратном порядке',
+        description: 'tool_reverse_desc',
         params: [],
         process: (lines) => {
             return { result: [...lines].reverse(), stats: {} };
@@ -156,15 +156,13 @@ const TOOLS = [
     },
     {
         id: 'compare',
-        title: 'Сравнение (Diff)',
+        title: 'tool_compare_title',
         icon: 'fas fa-exchange-alt',
-        description: 'Сравнить входящий текст со вторым списком',
-        // Secondary input essentially acts as a parameter here since it's user provided
+        description: 'tool_compare_desc',
         params: [
-            { id: 'list2', type: 'textarea', label: 'Список для сравнения', placeholder: 'Строки для сравнения...', value: '' },
-            // delimiter for list B — generic delimiter parameter type handles options + custom value
-            { id: 'delimiter', type: 'delimiter', label: 'Разделитель списка', value: '\\n' },
-            { id: 'operation', type: 'select', label: 'Показать', options: [{ v: 'common', l: 'Только общие' }, { v: 'diff', l: 'Только различия (A-B)' }, { v: 'all', l: 'Все с пометками' }], value: 'common' }
+            { id: 'list2', type: 'textarea', label: 'tool_compare_list2', placeholder: 'tool_compare_placeholder', value: '' },
+            { id: 'delimiter', type: 'delimiter', label: 'tool_compare_delimiter', value: '\\n' },
+            { id: 'operation', type: 'select', label: 'tool_compare_show', options: [{ v: 'common', l: 'tool_compare_common' }, { v: 'diff', l: 'tool_compare_diff' }, { v: 'all', l: 'tool_compare_all' }], value: 'common' }
         ],
         process: (lines, params) => {
             const delim = resolveDelimiter(params, 'delimiter', '\n');
@@ -175,13 +173,10 @@ const TOOLS = [
             let resultLines = [];
 
             if (params.operation === 'common') {
-                // Intersection
                 resultLines = [...setA].filter(x => setB.has(x));
             } else if (params.operation === 'diff') {
-                // A minus B
                 resultLines = [...setA].filter(x => !setB.has(x));
             } else {
-                // All with marks
                 [...setA].forEach(x => {
                     if (setB.has(x)) resultLines.push(`[=] ${x}`);
                     else resultLines.push(`[-] ${x}`); // In A but not B
@@ -199,11 +194,11 @@ const TOOLS = [
     },
     {
         id: 'duplicates',
-        title: 'Найти дубликаты',
+        title: 'tool_duplicates_title',
         icon: 'fas fa-copy',
-        description: 'Показывает только повторяющиеся строки',
+        description: 'tool_duplicates_desc',
         params: [
-            { id: 'showCounts', type: 'checkbox', label: 'Показывать количество', value: true }
+            { id: 'showCounts', type: 'checkbox', label: 'tool_duplicates_show_counts', value: true }
         ],
         process: (lines, params) => {
             const items = lines.map(x => x.trim()).filter(x => x);
@@ -217,19 +212,19 @@ const TOOLS = [
                 }
             });
 
-            if (resultArr.length === 0) return { result: ['(Нет дубликатов)'], stats: { duplicates: 0 } };
+            if (resultArr.length === 0) return { result: [i18n.t('tool_duplicates_none')], stats: { duplicates: 0 } };
 
             return { result: resultArr, stats: { duplicates: resultArr.length } };
         }
     },
     {
         id: 'filter',
-        title: 'Фильтр строк',
+        title: 'tool_filter_title',
         icon: 'fas fa-filter',
-        description: 'Оставить/Удалить строки по условию',
+        description: 'tool_filter_desc',
         params: [
-            { id: 'query', type: 'text', label: 'Текст поиска', value: '' },
-            { id: 'mode', type: 'select', label: 'Режим', options: [{ v: 'contains', l: 'Содержит' }, { v: 'not_contains', l: 'Не содержит' }, { v: 'starts', l: 'Начинается с' }, { v: 'ends', l: 'Заканчивается на' }], value: 'contains' }
+            { id: 'query', type: 'text', label: 'tool_filter_query', value: '' },
+            { id: 'mode', type: 'select', label: 'tool_sort_mode', options: [{ v: 'contains', l: 'tool_filter_contains' }, { v: 'not_contains', l: 'tool_filter_not_contains' }, { v: 'starts', l: 'tool_filter_starts' }, { v: 'ends', l: 'tool_filter_ends' }], value: 'contains' }
         ],
         process: (lines, params) => {
             const q = (params.query || '').toLowerCase();
@@ -243,18 +238,18 @@ const TOOLS = [
                 return true;
             });
 
-            return { result: res.length ? res : ['(пусто)'], stats: { matched: res.length, removed: lines.length - res.length } };
+            return { result: res.length ? res : ['(empty)'], stats: { matched: res.length, removed: lines.length - res.length } };
         }
     },
     {
         id: 'csv',
-        title: 'CSV Парсер',
+        title: 'tool_csv_title',
         icon: 'fas fa-file-csv',
-        description: 'Преобразование CSV в текст по шаблону',
+        description: 'tool_csv_desc',
         params: [
-            { id: 'delimiter', type: 'delimiter', label: 'Разделитель CSV (; или ,)', value: ';' },
-            { id: 'template', type: 'text', label: 'Шаблон ($1, $2...)', value: '$1 - $2' },
-            { id: 'skipHeader', type: 'checkbox', label: 'Пропустить заголовок', value: false }
+            { id: 'delimiter', type: 'delimiter', label: 'tool_csv_delimiter', value: ';' },
+            { id: 'template', type: 'text', label: 'tool_csv_template', value: '$1 - $2' },
+            { id: 'skipHeader', type: 'checkbox', label: 'tool_csv_skip_header', value: false }
         ],
         process: (lines, params) => {
             const delim = resolveDelimiter(params, 'delimiter', ';');
@@ -263,7 +258,6 @@ const TOOLS = [
 
             const res = [];
             for (let i = start; i < validLines.length; i++) {
-                // Simple split, doesn't handle quoted delimiters correctly but matches original simple logic mostly
                 const cols = validLines[i].split(delim);
                 let rowStr = params.template || '';
                 rowStr = rowStr.replace(/\$(\d+)/g, (m, n) => {
@@ -278,11 +272,11 @@ const TOOLS = [
     },
     {
         id: 'case',
-        title: 'Регистр',
+        title: 'tool_case_title',
         icon: 'fas fa-font',
-        description: 'UPPERCASE, lowercase, Capitalize',
+        description: 'tool_case_desc',
         params: [
-            { id: 'mode', type: 'select', label: 'Режим', options: [{ v: 'upper', l: 'ВСЕ ЗАГЛАВНЫЕ' }, { v: 'lower', l: 'все строчные' }, { v: 'cap', l: 'Начало Предложения' }, { v: 'word', l: 'Каждое Слово' }], value: 'lower' }
+            { id: 'mode', type: 'select', label: 'tool_sort_mode', options: [{ v: 'upper', l: 'tool_case_upper' }, { v: 'lower', l: 'tool_case_lower' }, { v: 'cap', l: 'tool_case_cap' }, { v: 'word', l: 'tool_case_word' }], value: 'lower' }
         ],
         process: (lines, params) => {
             const res = lines.map(line => {
@@ -302,12 +296,12 @@ const TOOLS = [
     },
     {
         id: 'wrapper',
-        title: 'Обертка (Prefix/Suffix)',
+        title: 'tool_wrapper_title',
         icon: 'fas fa-box',
-        description: 'Добавить текст в начало/конец каждой строки',
+        description: 'tool_wrapper_desc',
         params: [
-            { id: 'prefix', type: 'text', label: 'Префикс', value: '' },
-            { id: 'suffix', type: 'text', label: 'Суффикс', value: '' }
+            { id: 'prefix', type: 'text', label: 'tool_wrapper_prefix', value: '' },
+            { id: 'suffix', type: 'text', label: 'tool_wrapper_suffix', value: '' }
         ],
         process: (lines, params) => {
             const res = lines.map(l => (params.prefix || '') + l + (params.suffix || ''));
@@ -316,11 +310,11 @@ const TOOLS = [
     },
     {
         id: 'trim',
-        title: 'Обрезка (Trim)',
+        title: 'tool_trim_title',
         icon: 'fas fa-cut',
-        description: 'Удаляет пробелы с краев каждой строки',
+        description: 'tool_trim_desc',
         params: [
-            { id: 'mode', type: 'select', label: 'Режим', options: [{ v: 'both', l: 'С обеих сторон' }, { v: 'left', l: 'Слева' }, { v: 'right', l: 'Справа' }], value: 'both' }
+            { id: 'mode', type: 'select', label: 'tool_sort_mode', options: [{ v: 'both', l: 'tool_trim_both' }, { v: 'left', l: 'tool_trim_left' }, { v: 'right', l: 'tool_trim_right' }], value: 'both' }
         ],
         process: (lines, params) => {
             let changed = 0;
@@ -338,11 +332,11 @@ const TOOLS = [
     },
     {
         id: 'ai_cleaner',
-        title: 'AI Cleaner',
+        title: 'tool_ai_cleaner_title',
         icon: 'fas fa-magic',
-        description: 'Очистка типографики и спецсимволов',
+        description: 'tool_ai_cleaner_desc',
         params: [
-            { id: 'replaceStr', type: 'text', label: 'Заменять мусор на', value: '' }
+            { id: 'replaceStr', type: 'text', label: 'tool_ai_cleaner_replace', value: '' }
         ],
         process: (lines, params) => {
             let removed = 0;
@@ -358,18 +352,18 @@ const TOOLS = [
     },
     {
         id: 'json_format',
-        title: 'Форматирование JSON',
+        title: 'tool_json_format_title',
         icon: 'fas fa-code',
-        description: 'Превращает текст в красивый JSON',
+        description: 'tool_json_format_desc',
         params: [
-            { id: 'indent', type: 'select', label: 'Отступ', options: [{ v: '2', l: '2 пробела' }, { v: '4', l: '4 пробела' }, { v: 'tab', l: 'Табуляция' }, { v: '0', l: 'Минифицировать' }], value: '2' },
-            { id: 'joinDelim', type: 'select', label: 'Разделитель склейки', options: [{ v: '\\n', l: 'Новая строка' }, { v: '', l: 'Без разделителя' }, { v: ' ', l: 'Пробел' }], value: '\\n' }
+            { id: 'indent', type: 'select', label: 'tool_json_format_indent', options: [{ v: '2', l: 'tool_json_format_2spaces' }, { v: '4', l: 'tool_json_format_4spaces' }, { v: 'tab', l: 'tool_json_format_tab' }, { v: '0', l: 'tool_json_format_minify' }], value: '2' },
+            { id: 'joinDelim', type: 'select', label: 'tool_json_format_join', options: [{ v: '\\n', l: 'newline' }, { v: '', l: '(none)' }, { v: ' ', l: 'space' }], value: '\\n' }
         ],
         process: (lines, params) => {
             const joinD = params.joinDelim === '\\n' ? '\n' : params.joinDelim;
             const combined = lines.join(joinD);
 
-            if (!combined.trim()) return { result: lines, stats: { msg: 'Пустой ввод' } };
+            if (!combined.trim()) return { result: lines, stats: { msg: i18n.t('tool_json_format_empty') } };
 
             let parsed;
             try {
@@ -384,29 +378,26 @@ const TOOLS = [
             if (params.indent === '0') space = 0;
 
             const formatted = JSON.stringify(parsed, null, space);
-
-            // Always split by \n since standard stringify produces newline separated lines if space > 0
             const resLines = formatted.split('\n');
-
 
             return { result: resLines, stats: { lines: resLines.length } };
         }
     },
     {
         id: 'json_path',
-        title: 'Извлечение (JSONPath)',
+        title: 'tool_json_path_title',
         icon: 'fas fa-sitemap',
-        description: 'Извлекает элементы из JSON-текста (напр. $.users[*].name)',
+        description: 'tool_json_path_desc',
         params: [
-            { id: 'query', type: 'text', label: 'JSONPath запрос', value: '$.*' },
-            { id: 'inputMode', type: 'select', label: 'Входные данные', options: [{ v: 'combined', l: 'Все строки как один JSON' }, { v: 'lines', l: 'Каждая строка - отдельный JSON' }], value: 'combined' },
-            { id: 'joinDelim', type: 'select', label: 'Разделитель склейки', options: [{ v: '\\n', l: 'Новая строка' }, { v: '', l: 'Без разделителя' }, { v: ' ', l: 'Пробел' }], value: '\\n' },
-            { id: 'stringify', type: 'checkbox', label: 'Оборачивать объекты в JSON', value: true }
+            { id: 'query', type: 'text', label: 'tool_json_path_query', value: '$.*' },
+            { id: 'inputMode', type: 'select', label: 'tool_json_path_input_mode', options: [{ v: 'combined', l: 'tool_json_path_combined' }, { v: 'lines', l: 'tool_json_path_lines' }], value: 'combined' },
+            { id: 'joinDelim', type: 'select', label: 'tool_json_format_join', options: [{ v: '\\n', l: 'newline' }, { v: '', l: '(none)' }, { v: ' ', l: 'space' }], value: '\\n' },
+            { id: 'stringify', type: 'checkbox', label: 'tool_json_path_stringify', value: true }
         ],
         help: 'https://jsonpath.com/',
         process: (lines, params) => {
             if (typeof jsonpath === 'undefined') {
-                return { result: ['Библиотека jsonpath не загружена! Проверьте интернет-соединение.'], error: true };
+                return { result: [i18n.t('tool_json_path_lib_error')], error: true };
             }
 
             const stringifyItem = (item) => {
@@ -438,13 +429,13 @@ const TOOLS = [
                     const joinD = params.joinDelim === '\\n' ? '\n' : params.joinDelim;
                     const combined = lines.join(joinD);
 
-                    if (!combined.trim()) return { result: lines, stats: { msg: 'Пустой ввод' } };
+                    if (!combined.trim()) return { result: lines, stats: { msg: i18n.t('tool_json_format_empty') } };
 
                     let parsed;
                     try {
                         parsed = JSON.parse(combined);
                     } catch (e) {
-                        return { result: [`Ошибка парсинга JSON: ${e.message}`], error: true };
+                        return { result: [`${i18n.t('tool_json_path_parse_error')}${e.message}`], error: true };
                     }
 
                     const jpResult = jsonpath.query(parsed, params.query || '$.*');
@@ -452,40 +443,41 @@ const TOOLS = [
                     return { result: resLines, stats: { items: resLines.length } };
                 }
             } catch (e) {
-                return { result: [`Ошибка JSONPath: ${e.message}`], error: true };
+                return { result: [`${i18n.t('tool_json_path_error')}${e.message}`], error: true };
             }
         }
     },
     {
         id: 'join',
-        title: 'Объединить строки (Join)',
+        title: 'tool_join_title',
         icon: 'fas fa-link',
-        description: 'Собирает список в одну строку',
+        description: 'tool_join_desc',
         params: [
-            { id: 'prefix', type: 'text', label: 'Первые символы', value: '' },
-            { id: 'delimiter', type: 'delimiter', label: 'Разделитель', value: ', ' },
-            { id: 'lastDelimiter', type: 'delimiter', label: 'Последний разделитель', value: ' и ' },
-            { id: 'suffix', type: 'text', label: 'Последние символы', value: '' }
+            { id: 'prefix', type: 'text', label: 'tool_join_prefix', value: '' },
+            { id: 'delimiter', type: 'delimiter', label: 'tool_compare_delimiter', value: ', ' },
+            { id: 'lastDelimiter', type: 'delimiter', label: 'tool_join_last_delimiter', value: ' and ' },
+            { id: 'suffix', type: 'text', label: 'tool_join_suffix', value: '' }
         ],
         process: (lines, params) => {
             if (lines.length === 0) return { result: [''], stats: { count: 0 } };
             let res = '';
+            const lastDelim = params.lastDelimiter === ' and ' ? i18n.t('tool_join_and') : resolveDelimiter(params, 'lastDelimiter', '');
             if (lines.length === 1) {
                 res = (params.prefix || '') + lines[0] + (params.suffix || '');
             } else {
                 const allButLast = lines.slice(0, -1).join(resolveDelimiter(params, 'delimiter', ''));
-                res = (params.prefix || '') + allButLast + (resolveDelimiter(params, 'lastDelimiter', '')) + lines[lines.length - 1] + (params.suffix || '');
+                res = (params.prefix || '') + allButLast + lastDelim + lines[lines.length - 1] + (params.suffix || '');
             }
             return { result: [res], stats: {} };
         }
     },
     {
         id: 'split',
-        title: 'Разбить строку (Split)',
+        title: 'tool_split_title',
         icon: 'fas fa-columns',
-        description: 'Разбивает строки по разделителю',
+        description: 'tool_split_desc',
         params: [
-            { id: 'delimiter', type: 'delimiter', label: 'Разделитель', value: ',' }
+            { id: 'delimiter', type: 'delimiter', label: 'tool_compare_delimiter', value: ',' }
         ],
         process: (lines, params) => {
             const delim = resolveDelimiter(params, 'delimiter', ',');
@@ -495,35 +487,27 @@ const TOOLS = [
     },
     {
         id: 'add_line',
-        title: 'Добавить строку',
+        title: 'tool_add_line_title',
         icon: 'fas fa-plus-square',
-        description: 'Добавляет строки в начало, конец списка и/или между строк',
+        description: 'tool_add_line_desc',
         params: [
-            { id: 'startLine', type: 'text', label: 'Первая строка', value: '' },
-            { id: 'betweenLines', type: 'text', label: 'Между строк', value: '' },
-            { id: 'endLine', type: 'text', label: 'Последняя строка', value: '' }
+            { id: 'startLine', type: 'text', label: 'tool_add_line_start', value: '' },
+            { id: 'betweenLines', type: 'text', label: 'tool_add_line_between', value: '' },
+            { id: 'endLine', type: 'text', label: 'tool_add_line_end', value: '' }
         ],
         process: (lines, params) => {
             let res = [];
-
-            // Поддержка старых цепочек для обратной совместимости
             let start = params.startLine || '';
             let between = params.betweenLines || '';
             let end = params.endLine || '';
-
-            if (params.content !== undefined && params.position !== undefined) {
-                if (params.position === 'start' && !start) start = params.content;
-                if (params.position === 'between' && !between) between = params.content;
-                if (params.position === 'end' && !end) end = params.content;
-            }
 
             if (start !== '') res.push(start);
 
             for (let i = 0; i < lines.length; i++) {
                 res.push(lines[i]);
                 if (i < lines.length - 1 && between !== '') {
+                    res.push(between);
                 }
-                res.push(between);
             }
 
             if (end !== '') res.push(end);
@@ -533,11 +517,11 @@ const TOOLS = [
     },
     {
         id: 'template',
-        title: 'Шаблонизатор (Nunjucks)',
+        title: 'tool_template_title',
         icon: 'fas fa-terminal',
-        description: 'Генерация по шаблону (доступны body и lines)',
+        description: 'tool_template_desc',
         params: [
-            { id: 'tpl', type: 'textarea', label: 'Шаблон Nunjucks (доступны body и lines)', value: '{% for line in lines %}\n- {{ line }}\n{% endfor %}' }
+            { id: 'tpl', type: 'textarea', label: 'tool_template_tpl', value: '{% for line in lines %}\n- {{ line }}\n{% endfor %}' }
         ],
         help: 'https://mozilla.github.io/nunjucks/templating.html',
         process: (lines, params) => {
@@ -554,11 +538,11 @@ const TOOLS = [
     },
     {
         id: 'js_function',
-        title: 'Функция (JS)',
+        title: 'tool_js_function_title',
         icon: 'fas fa-code',
-        description: 'Свой JS код для обработки каждой строки',
+        description: 'tool_js_function_desc',
         params: [
-            { id: 'code', type: 'textarea', label: 'Код функции (аргумент line)', value: 'return line.toUpperCase();' }
+            { id: 'code', type: 'textarea', label: 'tool_js_function_code', value: 'return line.toUpperCase();' }
         ],
         process: (lines, params) => {
             try {
@@ -572,17 +556,17 @@ const TOOLS = [
                 });
                 return { result: res, stats: { count: res.length } };
             } catch (e) {
-                return { result: [`Ошибка компиляции: ${e.message}`], error: true };
+                return { result: [`${i18n.t('tool_js_function_compilation_error')}${e.message}`], error: true };
             }
         }
     },
     {
         id: 'shuffle',
-        title: 'Случайная сортировка',
+        title: 'tool_shuffle_title',
         icon: 'fas fa-random',
-        description: 'Перемешивает строки в случайном порядке',
+        description: 'tool_shuffle_desc',
         params: [
-            { id: 'seed', type: 'text', label: 'Seed (число)', value: '' }
+            { id: 'seed', type: 'text', label: 'tool_shuffle_seed', value: '' }
         ],
         init: (params) => {
             if (!params.seed) {
@@ -610,12 +594,12 @@ const TOOLS = [
     },
     {
         id: 'to_hex',
-        title: 'В HEX (To Hex)',
+        title: 'tool_to_hex_title',
         icon: 'fas fa-hashtag',
-        description: 'Преобразует текст в шестнадцатеричный код',
+        description: 'tool_to_hex_desc',
         params: [
             {
-                id: 'encoding', type: 'select', label: 'Кодировка', options: [
+                id: 'encoding', type: 'select', label: 'tool_to_hex_encoding', options: [
                     { v: 'utf-8', l: 'UTF-8' },
                     { v: 'utf-16le', l: 'UTF-16LE' },
                     { v: 'utf-16be', l: 'UTF-16BE' },
@@ -625,14 +609,14 @@ const TOOLS = [
                 ], value: 'utf-8'
             },
             {
-                id: 'format', type: 'select', label: 'Формат', options: [
-                    { v: 'plain', l: 'Слитная строка (xxyyzz)' },
-                    { v: 'spaced', l: 'Через пробел (xx yy zz)' },
-                    { v: 'dump', l: 'Дамп (смещение + 16 байт)' },
-                    { v: 'dump_ascii', l: 'Дамп + ASCII' }
+                id: 'format', type: 'select', label: 'tool_to_hex_format', options: [
+                    { v: 'plain', l: 'tool_to_hex_plain' },
+                    { v: 'spaced', l: 'tool_to_hex_spaced' },
+                    { v: 'dump', l: 'tool_to_hex_dump' },
+                    { v: 'dump_ascii', l: 'tool_to_hex_dump_ascii' }
                 ], value: 'spaced'
             },
-            { id: 'uppercase', type: 'checkbox', label: 'Заглавные буквы (A-F)', value: true }
+            { id: 'uppercase', type: 'checkbox', label: 'tool_to_hex_uppercase', value: true }
         ],
         process: (lines, params) => {
             const res = [];
@@ -714,7 +698,7 @@ const TOOLS = [
                         bytes = cp866Encode(line);
                     }
                 } catch (e) {
-                    res.push(`[Ошибка кодирования: ${e.message}]`);
+                    res.push(`[${i18n.t('tool_to_hex_error')}${e.message}]`);
                     return;
                 }
 
@@ -736,7 +720,6 @@ const TOOLS = [
                         const offset = i.toString(16).padStart(8, '0').toUpperCase();
                         const hexParts = Array.from(chunk).map(toHexStr);
 
-                        // Add extra space after 8th byte for readability in dump
                         let hexStr = "";
                         for (let j = 0; j < hexParts.length; j++) {
                             hexStr += hexParts[j] + (j === 7 ? "  " : " ");
@@ -759,12 +742,12 @@ const TOOLS = [
     },
     {
         id: 'from_hex',
-        title: 'ИЗ HEX (From Hex)',
+        title: 'tool_from_hex_title',
         icon: 'fas fa-th-list',
-        description: 'Преобразует шестнадцатеричный код обратно в текст',
+        description: 'tool_from_hex_desc',
         params: [
             {
-                id: 'encoding', type: 'select', label: 'Кодировка байт', options: [
+                id: 'encoding', type: 'select', label: 'tool_from_hex_encoding', options: [
                     { v: 'utf-8', l: 'UTF-8' },
                     { v: 'utf-16le', l: 'UTF-16LE' },
                     { v: 'utf-16be', l: 'UTF-16BE' },
@@ -784,16 +767,14 @@ const TOOLS = [
                 let hPart = line;
                 if (line.includes(':')) {
                     const parts = line.split(':');
-                    // Everything after the first colon is the hex part, but before the optional |
                     hPart = parts.slice(1).join(':').split('|')[0];
                 }
 
-                // Check for invalid characters in the hex part
                 const invalidMatches = hPart.match(/[^a-fA-F0-9\s]/g);
                 if (invalidMatches) {
                     const uniqueInvalid = [...new Set(invalidMatches)];
                     return {
-                        result: `Обнаружены недопустимые символы в HEX данных на строке ${i + 1}: ${uniqueInvalid.join(' ')}`,
+                        result: `${i18n.t('tool_from_hex_invalid_chars')} ${i + 1}: ${uniqueInvalid.join(' ')}`,
                         error: true
                     };
                 }
@@ -801,7 +782,7 @@ const TOOLS = [
                 const hexOnly = hPart.replace(/\s/g, '');
                 if (hexOnly.length && hexOnly.length % 2 !== 0) {
                     return {
-                        result: `Неполный байт (нечетное количество символов) на строке ${i + 1}`,
+                        result: `${i18n.t('tool_from_hex_incomplete')} ${i + 1}`,
                         error: true
                     };
                 }
@@ -813,7 +794,7 @@ const TOOLS = [
 
             if (allHex.length === 0) {
                 return {
-                    result: 'HEX данные не найдены. Поддерживаемые форматы: "xx yy zz", "xxyyzz" или дамп "0000: xx yy zz |ascii|"',
+                    result: i18n.t('tool_from_hex_not_found'),
                     error: true
                 };
             }
@@ -849,7 +830,7 @@ const TOOLS = [
                     }
                 }
             } catch (e) {
-                return { result: [`Ошибка декодирования: ${e.message}`], error: true };
+                return { result: [`${i18n.t('tool_from_hex_error')}${e.message}`], error: true };
             }
 
             return { result: decoded.split('\n'), stats: { bytes: bytes.length } };
@@ -857,12 +838,12 @@ const TOOLS = [
     },
     {
         id: 'encode',
-        title: 'Кодирование (Base64/URL)',
+        title: 'tool_encode_title',
         icon: 'fas fa-link',
-        description: 'Кодирование и декодирование (Base64, URL)',
+        description: 'tool_encode_desc',
         params: [
             {
-                id: 'mode', type: 'select', label: 'Действие', options: [
+                id: 'mode', type: 'select', label: 'tool_encode_mode', options: [
                     { v: 'b64encode', l: 'Base64 Encode' },
                     { v: 'b64decode', l: 'Base64 Decode' },
                     { v: 'urlencode', l: 'URL Encode' },
@@ -886,7 +867,7 @@ const TOOLS = [
                     }
                 } catch (e) {
                     errors++;
-                    return `[Ошибка: ${e.message}]`;
+                    return `[${i18n.t('tool_encode_error')}${e.message}]`;
                 }
                 return line;
             });
@@ -895,12 +876,12 @@ const TOOLS = [
     },
     {
         id: 'hash',
-        title: 'Хеширование',
+        title: 'tool_hash_title',
         icon: 'fas fa-fingerprint',
-        description: 'Вычисляет CRC32, MD5, SHA-1, SHA-256, SHA-384, SHA-512',
+        description: 'tool_hash_desc',
         params: [
             {
-                id: 'algorithm', type: 'select', label: 'Алгоритм', options: [
+                id: 'algorithm', type: 'select', label: 'tool_hash_algorithm', options: [
                     { v: 'crc32', l: 'CRC32' },
                     { v: 'md5', l: 'MD5' },
                     { v: 'sha1', l: 'SHA-1' },
@@ -915,7 +896,7 @@ const TOOLS = [
         ],
         process: (lines, params) => {
             if (params.algorithm !== 'crc32' && typeof CryptoJS === 'undefined') {
-                return { result: ['Библиотека CryptoJS не загружена! Проверьте интернет-соединение.'], error: true };
+                return { result: [i18n.t('tool_hash_lib_error')], error: true };
             }
 
             const makeCRCTable = function () {
@@ -965,7 +946,7 @@ const TOOLS = [
                     }
                 } catch (e) {
                     errors++;
-                    return `[Ошибка: ${e.message}]`;
+                    return `[${i18n.t('tool_encode_error')}${e.message}]`;
                 }
                 return h;
             });
@@ -974,14 +955,13 @@ const TOOLS = [
     },
     {
         id: 'debug_view',
-        title: 'Отладка (Debug View)',
+        title: 'tool_debug_title',
         icon: 'fas fa-bug',
-        description: 'Визуализирует невидимые символы (пробелы, табы, переносы)',
+        description: 'tool_debug_desc',
         params: [
-            { id: 'showSpaces', type: 'checkbox', label: 'Показывать пробелы (·)', value: true },
-            { id: 'showTabs', type: 'checkbox', label: 'Показывать табы (→)', value: true },
-            //            { id: 'showLineBreaks', type: 'checkbox', label: 'Показывать переносы (↵)', value: true },
-            { id: 'showLineNumbers', type: 'checkbox', label: 'Номера строк', value: false }
+            { id: 'showSpaces', type: 'checkbox', label: 'tool_debug_spaces', value: true },
+            { id: 'showTabs', type: 'checkbox', label: 'tool_debug_tabs', value: true },
+            { id: 'showLineNumbers', type: 'checkbox', label: 'tool_debug_numbers', value: false }
         ],
         process: (lines, params) => {
             let spaces = 0;
@@ -1017,3 +997,7 @@ const TOOLS = [
         }
     }
 ];
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TOOLS;
+}

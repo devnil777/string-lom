@@ -1,180 +1,181 @@
-# 🔗 StringLOM — Конструктор строк
+# 🔗 StringLOM — String Constructor
 
-**Визуальный конвейерный редактор текста** — мощный браузерный инструмент для обработки, трансформации и анализа текстовых данных. Работает полностью локально, без отправки данных на сервер.
-
----
-
-## 📖 Описание
-
-**StringLOM** — это одностраничное веб-приложение (SPA), которое позволяет строить цепочки обработки текста из готовых блоков-инструментов. Вы задаёте исходный текст, добавляете нужные блоки обработки, и получаете финальный результат в реальном времени.
-
-### ✨ Ключевые особенности
-
-- **Обработка в реальном времени** — результат обновляется мгновенно при любом изменении параметров или входных данных.
-- **Блочная архитектура** — цепочка из последовательных блоков-инструментов, где выход одного блока становится входом следующего.
-- **Управление цепочками** — сохранение цепочек в `localStorage`, закрепление уникальной ссылки (ID) на цепочку в URL для быстрого доступа, а также отслеживание несохраненных параметров (предупреждения).
-- **Поделиться по ссылке** — возможность сгенерировать ссылку, содержащую всю конфигурацию цепочки (через base64 в URL).
-- **Drag & Drop файлов и блоков** — поддержка загрузки текстовых файлов прямым перетаскиванием. Изменение порядка блоков перетаскиванием с понятным визуальным индикатором позиции.
-- **Корзина блоков** — безопасное удаление блоков с возможностью моментального восстановления (через панель "Restore Block" в течение 5 секунд).
-- **Премиальный UI/UX** — современный дизайн (Glassmorphism), мгновенное переключение тёмной/светлой темы без задержек, удобные тумблеры (switch) вместо галочек и плавные анимации.
-- **Полная конфиденциальность** — все вычисления выполняются в браузере, данные никуда не отправляются.
+**Visual Pipeline Text Editor** — a powerful browser-based tool for processing, transforming, and analyzing text data. Works completely locally, without sending data to a server.
 
 ---
 
-## 🚀 Быстрый старт
+## 📖 Description
 
-1. Откройте файл `src/index.html` в любом современном браузере.
-2. Введите текст в блок **Исходный текст**.
-3. Нажмите **+ Добавить блок** (или Alt + A) и выберите нужный инструмент.
-4. Результат отобразится в блоке **Финальный результат** внизу страницы.
+**StringLOM** is a Single Page Application (SPA) that allows you to build text processing chains from ready-made tool blocks. You provide the source text, add the necessary processing blocks, and get the final result in real-time.
 
-> Никакой установки, сервера или интернета (после первой загрузки) не требуется.
+### ✨ Key Features
+
+- **Real-time Processing** — the result updates instantly as parameters or input data change.
+- **Block Architecture** — a chain of sequential tool blocks, where the output of one block becomes the input of the next.
+- **Chain Management** — save chains to `localStorage`, pin a unique link (ID) to the chain in the URL for quick access, and track unsaved parameters (warnings).
+- **Share via Link** — generate a link containing the entire chain configuration (via base64 in the URL).
+- **Drag & Drop Files and Blocks** — support for uploading text files by direct dragging. Change the order of blocks by dragging with a clear visual position indicator.
+- **Block Trash** — safely delete blocks with the ability for instant restoration (via the "Restore Block" panel within 5 seconds).
+- **Premium UI/UX** — modern design (Glassmorphism), instant dark/light theme switching without delays, convenient toggles (switches) instead of checkboxes, and smooth animations.
+- **Complete Privacy** — all calculations are performed in the browser, data is never sent anywhere.
 
 ---
 
-## 🏗️ Архитектура
+## 🚀 Quick Start
 
-Приложение построено на принципе **конвейера (pipeline)**:
+1. Open the `src/index.html` file in any modern browser.
+2. Enter text in the **Data Input** block.
+3. Click **+ Add Block** (or Alt + A) and select the desired tool.
+4. The result will be displayed in the **Final Result** block at the bottom of the page.
+
+> No installation, server, or internet (after the initial load) is required.
+
+---
+
+## 🏗️ Architecture
+
+The application is built on the **pipeline** principle:
 
 ```
-Исходный текст --> Блок #1 (Regex) --> Блок #2 (Sort) --> Финальный результат
+Source Text --> Block #1 (Regex) --> Block #2 (Sort) --> Final Result
 ```
 
-- **Исходный блок** — точка входа: текст (ручной ввод, загрузка через кнопку или **Drag & Drop файла** в текстовую область) + выбор разделителя строк.
-- **Блоки обработки** — произвольное количество последовательных блоков; каждый принимает массив строк, обрабатывает его и передаёт дальше. **Порядок блоков можно менять простым перетаскиванием.**
-- **Финальный результат** — отображение итогового текста с возможностью копирования, скачивания и настройки разделителя вывода.
+- **Source Block** — the entry point: text (manual input, button upload, or **File Drag & Drop** into the text area) + choice of line delimiter.
+- **Processing Blocks** — an arbitrary number of sequential blocks; each takes an array of strings, processes it, and passes it forward. **The order of blocks can be changed by simple dragging.**
+- **Final Result** — display of the resulting text with the ability to copy, download, and configure the output delimiter.
 
 ---
 
-## 🛠️ Доступные инструменты
+## 🛠️ Available Tools
 
-Инструменты разделены на логические категории для удобного поиска:
+Tools are divided into logical categories for easy searching:
 
-### 🔍 Поиск и очистка
-- **Поиск и замена (Regex)** — замена текста по регулярному выражению. Поддержка режима "без учета регистра" и вывода "только совпадений". Флаги (`g`, `m`) применяются автоматически.
-- **AI Cleaner** — автоматическая очистка типографики: замена длинных тире на обычные, замена «угловых» кавычек на "прямые", удаление или замена нестандартных Unicode-символов.
+### 🔍 Search and Clean
+- **Search and Replace (Regex)** — replace text using a regular expression. Supports "case insensitive" mode and "only matched" output. Flags (`g`, `m`) are applied automatically.
+- **AI Cleaner** — automatic typography cleanup: replace long dashes with hyphens, replace "curly" quotes with "straight" ones, remove or replace non-standard Unicode characters.
 
-### ✂️ Удаление и фильтрация
-- **Удаление дубликатов** — оставляет только уникальные строки. Опция Trim для игнорирования пробелов по краям.
-- **Найти дубликаты** — показывает только повторяющиеся строки с возможностью вывода счётчика повторений.
-- **Фильтр строк** — фильтрация по условию: содержит, не содержит, начинается с, заканчивается на.
+### ✂️ Remove and Filter
+- **Remove Duplicates** — keeps only unique lines. Trim option to ignore leading/trailing spaces.
+- **Find Duplicates** — shows only repeating lines with an optional repeat counter.
+- **Line Filter** — filtering by condition: contains, does not contain, starts with, ends with.
 
-### 🔢 Порядок и сравнение
-- **Сортировка** — сортировка текста (с опцией игнорирования регистра) и "умная" числовая сортировка (числа всегда выносятся в начало списка с учетом их значений).
-- **Разворот (Reverse)** — переворачивает список строк в обратном порядке (снизу вверх).
-- **Случайная сортировка** — перемешивает строки. Поддерживает параметр `Seed` для генерации воспроизводимого случайного порядка.
-- **Сравнение (Diff)** — сравнение входящего списка со вторым списком (Список B). Режимы: только общие, только различия (A-B), все с пометками (+, -, =).
+### 🔢 Order and Compare
+- **Sort** — text sorting (with case ignore option) and "smart" numeric sorting (numbers are always brought to the beginning of the list considering their values).
+- **Reverse** — reverses the list of lines in backward order (bottom to top).
+- **Random Shuffle** — shuffles lines. Supports a `Seed` parameter for generating reproducible random orders.
+- **Compare (Diff)** — compare the incoming list with a second list (List B). Modes: only common, only differences (A-B), all with marks (+, -, =).
 
-### 📝 Трансформация текста
-- **Регистр** — ПРЕОБРАЗОВАНИЕ РЕГИСТРА: ВСЕ ЗАГЛАВНЫЕ, все строчные, Начало Предложения, Каждое Слово.
-- **Обрезка (Trim)** — удаление пробелов с краёв строк (слева, справа или с обеих сторон).
-- **Обёртка (Prefix/Suffix)** — добавление произвольного текста в начало и/или конец каждой строки.
+### 📝 Text Transformation
+- **Case** — CASE CONVERSION: ALL UPPERCASE, all lowercase, Sentence Case, Each Word.
+- **Trim** — remove spaces from the edges of lines (left, right, or both sides).
+- **Wrapper (Prefix/Suffix)** — add arbitrary text to the beginning and/or end of each line.
 
-### 📦 Работа с форматами
-- **CSV Парсер** — разбор CSV-данных по шаблону ($1, $2...). Настройка разделителя и пропуск заголовка.
-- **Форматирование JSON** — красивое форматирование JSON: отступ 2/4 пробела, табуляция, минификация.
-- **Извлечение (JSONPath)** — извлечение данных из JSON по запросам (например, `$.items[*].id`). Режимы: один JSON или построчно.
-- **Разбить строку (Split)** — разбиение строк по произвольному разделителю.
-- **Кодирование (Base64/URL)** — кодирование и декодирование в стандарты Base64 или URL Encode.
-- **Хеширование** — генерация хешей (CRC32, MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA-3, RIPEMD-160) с выводом результатов в нижнем регистре.
-- **В HEX (To Hex)** — преобразование текста в шестнадцатеричный код. Многообразие кодировок (UTF-8, UTF-16LE, UTF-16BE, Windows-1251, KOI8-R, CP866) и форматов вывода (с пробелами, слитный, дамп с ASCII).
-- **ИЗ HEX (From Hex)** — обратное преобразование байтов (HEX) в текст с поддержкой выбора нужной кодировки байт.
+### 📦 Work with Formats
+- **CSV Parser** — parse CSV data by template ($1, $2...). Configurable delimiter and skip header option.
+- **JSON Formatting** — pretty JSON formatting: indent 2/4 spaces, tabulation, minification.
+- **Extraction (JSONPath)** — extract data from JSON using queries (e.g., `$.items[*].id`). Modes: single JSON or line-by-line.
+- **Split String** — split lines by an arbitrary delimiter.
+- **Encoding (Base64/URL)** — encode and decode into Base64 or URL Encode standards.
+- **Hashing** — generate hashes (CRC32, MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA-3, RIPEMD-160) with results in lowercase.
+- **To HEX** — convert text to hexadecimal code. Variety of encodings (UTF-8, UTF-16LE, UTF-16BE, Windows-1251, KOI8-R, CP866) and output formats (with spaces, plain, dump with ASCII).
+- **From HEX** — reverse conversion of bytes (HEX) to text with support for choosing the required byte encoding.
 
-### 🔧 Сборка и шаблоны
-- **Объединить строки (Join)** — склейка списка строк в одну с настройкой разделителя, префикса, суффикса и "последнего разделителя" (например, ", " и " и ").
-- **Добавить строку** — вставка произвольной строки в начало, конец списка или между строк.
-- **Шаблонизатор (Nunjucks)** — генерация текста по шаблону Nunjucks. Доступны объекты `body` (весь текст) и `lines` (массив строк).
-- **Функция (JS)** — выполнение произвольного JavaScript-кода для программной обработки каждой строчки.
-- **Отладка (Debug View)** — визуализация невидимых символов (пробелы: `·`, табы: `→`, переносы) и отображение точных номеров строк для удобной отладки.
-
----
-
-## ⚙️ Настройки входных и выходных данных
-
-### 📥 Разделитель исходного текста (Split)
-Определяет, как исходный текст разбивается на отдельные элементы (строки) перед началом обработки:
-- **Новая строка** (`\n`) — стандартный режим построчной обработки.
-- **Запятая, точка с запятой, пробел** — для работы со списками в одну строку.
-- **Свой разделитель** — поддержка любых пользовательских последовательностей символов.
-
-### 📤 Разделитель финального результата (Join)
-Определяет, как обработанные элементы собираются обратно в единый текстовый блок:
-- **Новая строка** — для классических списков.
-- **Минификация или свой текст** — для генерации кода (например, CSS или SQL).
+### 🔧 Assembly and Templates
+- **Join Lines** — assembling a list of lines into one with configurable delimiter, prefix, suffix, and "last delimiter" (e.g., ", " and " and ").
+- **Add Line** — inserting an arbitrary line at the beginning, end of the list, or between lines.
+- **Templatizer (Nunjucks)** — text generation based on a Nunjucks template. `body` (entire text) and `lines` (array of strings) objects are available.
+- **Function (JS)** — executing arbitrary JavaScript code for programmatic processing of each line.
+- **Debug View** — visualization of invisible characters (spaces: `·`, tabs: `→`, breaks) and display of exact line numbers for easy debugging.
 
 ---
 
-## 💡 Примеры использования
+## ⚙️ Input and Output Settings
 
-### 📧 Очистка списка email-адресов
-1. Вставьте список в блок **Исходный текст**.
-2. Добавьте **Обрезка (Trim)** — удалить лишние пробелы.
-3. Добавьте **Регистр** → все строчные.
-4. Добавьте **Удаление дубликатов**.
-5. Добавьте **Сортировка** → A-Z.
+### 📥 Source Text Delimiter (Split)
+Determines how the source text is broken into individual elements (lines) before processing:
+- **New Line** (`\n`) — standard line-by-line processing mode.
+- **Comma, semicolon, space** — for working with single-line lists.
+- **Custom delimiter** — support for any user-defined character sequences.
 
-### 📊 Извлечение данных из JSON API
-1. Вставьте JSON-ответ.
-2. Добавьте **Извлечение (JSONPath)** → запрос `$.data[*].email`.
-3. Добавьте **Сортировка**.
-4. Добавьте **Удаление дубликатов**.
-
-### 🛠️ Генерация SQL VALUES из CSV
-1. Вставьте CSV-данные.
-2. Добавьте **CSV Парсер** → шаблон `('$1', '$2', '$3')`.
-3. Добавьте **Объединить строки (Join)** → разделитель `, `.
-4. Добавьте **Обёртка** → префикс `INSERT INTO table VALUES ` и суффикс `;`.
-
-### 🔍 Сравнение двух списков
-1. Вставьте первый список.
-2. Добавьте **Сравнение (Diff)** → вставьте второй список в поле "Список B".
-3. Выберите режим: общие элементы, только различия или все с пометками.
+### 📤 Final Result Delimiter (Join)
+Determines how processed elements are reassembled into a single text block:
+- **New Line** — for classic lists.
+- **Minification or custom text** — for code generation (e.g., CSS or SQL).
 
 ---
 
-## ⌨️ Горячие клавиши
+## 💡 Usage Examples
 
-Использование горячих клавиш значительно ускоряет работу:
+### 📧 Cleaning an Email List
+1. Paste the list into the **Data Input** block.
+2. Add **Trim** — remove extra spaces.
+3. Add **Case** → all lowercase.
+4. Add **Remove Duplicates**.
+5. Add **Sort** → A-Z.
 
-| Комбинация | Действие |
+### 📊 Extracting Data from JSON API
+1. Paste the JSON response.
+2. Add **Extraction (JSONPath)** → query `$.data[*].email`.
+3. Add **Sort**.
+4. Add **Remove Duplicates**.
+
+### 🛠️ Generating SQL VALUES from CSV
+1. Paste CSV data.
+2. Add **CSV Parser** → template `('$1', '$2', '$3')`.
+3. Add **Join Lines** → delimiter `, `.
+4. Add **Wrapper** → prefix `INSERT INTO table VALUES ` and suffix `;`.
+
+### 🔍 Comparing Two Lists
+1. Paste the first list.
+2. Add **Compare (Diff)** → paste the second list into the "List for comparison" field.
+3. Choose mode: common elements, only differences, or all with marks.
+
+---
+
+## ⌨️ Hotkeys
+
+Using hotkeys significantly speeds up the workflow:
+
+| Combination | Action |
 |---|---|
-| **Alt + N** | Создать новую цепочку (сброс) |
-| **Alt + S** (или Ctrl+S) | Сохранить текущую цепочку |
-| **Alt + I** | Импортировать цепочку (JSON) |
-| **Alt + E** | Экспортировать цепочку (JSON) |
-| **Alt + R** | Переименовать текущую цепочку |
-| **Alt + A** | Добавить новый блок после текущего |
-| **Alt + B** | Добавить новый блок перед текущим |
-| **Alt + Delete** | Удалить текущий блок |
-| **Esc** | Закрыть модальное окно |
+| **Alt + N** | Create a new chain (reset) |
+| **Alt + S** (or Ctrl+S) | Save the current chain |
+| **Alt + I** | Import chain (JSON) |
+| **Alt + E** | Export chain (JSON) |
+| **Alt + R** | Rename current chain |
+| **Alt + A** | Add new block after current |
+| **Alt + B** | Add new block before current |
+| **Alt + Delete** | Delete current block |
+| **Esc** | Close modal window |
 
 ---
 
-## 📁 Структура проекта
+## 📁 Project Structure
 
 ```
 string-lom/
 ├── src/
-│   ├── index.html       # Основной файл приложения
-│   └── favicon.svg      # Логотип и иконка
-├── .github/workflows/   # Автоматизация (GitHub Actions / Pages)
-├── analytics-*.html     # Файлы аналитики
-└── README.md            # Данная документация
+│   ├── index.html       # Main application file
+│   └── favicon.svg      # Logo and icon
+├── .github/workflows/   # Automation (GitHub Actions / Pages)
+├── analytics-*.html     # Analytics files
+└── README.md            # This documentation
+└── README_ru.md         # Russian documentation
 ```
 
 ---
 
-## 🛠 Технологии
+## 🛠 Technologies
 
-StringLOM построен на современных веб-технологиях без использования тяжёлых фреймворков:
-- **Vanilla JS (ES6+)** — логика приложения и управление состоянием.
-- **HTML5 & CSS3** — семантическая вёрстка и современный UI с эффектами Glassmorphism.
-- **Font Awesome 6** — иконки интерфейса.
-- **JSONPath-Plus** — библиотека для парсинга JSON-данных.
-- **Nunjucks** — мощный шаблонизатор для генерации текста.
+StringLOM is built on modern web technologies without using heavy frameworks:
+- **Vanilla JS (ES6+)** — application logic and state management.
+- **HTML5 & CSS3** — semantic layout and modern UI with Glassmorphism effects.
+- **Font Awesome 6** — interface icons.
+- **JSONPath-Plus** — library for parsing JSON data.
+- **Nunjucks** — powerful templating engine for text generation.
 
 ---
 
-## 🔒 Конфиденциальность
+## 🔒 Privacy
 
-Приложение работает по принципу **Client-Side Only**. Все ваши данные, введённый текст и конфигурации цепочек обрабатываются исключительно в вашем браузере. Данные не передаются на сторонние серверы, что гарантирует полную безопасность конфиденциальной информации.
+The application works on a **Client-Side Only** principle. All your data, entered text, and chain configurations are processed exclusively in your browser. Data is not transmitted to third-party servers, which guarantees the complete security of confidential information.

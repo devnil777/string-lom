@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StringLOM</title>
-    <meta name="description"
+    <meta name="description" data-i18n="app_description"
         content="StringLOM — визуальный конвейер для текста. Цепочки блоков: Regex, JSON, CSV, сортировка. Результат мгновенно, 100% в браузере, без сервера. drag&drop, приватно, без установки">
 
     <!-- OPENGRAPH_PLACEHOLDER -->
@@ -22,6 +22,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
     <link rel="manifest" href="assets/site.webmanifest" />
     <link rel="stylesheet" href="css/styles.css">
+    <script src="js/i18n.js"></script>
     <script src="js/tools.js"></script>
     <script src="js/categories.js"></script>
 </head>
@@ -36,23 +37,33 @@
                         <span>StringLOM</span>
                     </div>
                     <div class="app-menu">
-                        <button class="icon-btn" id="app-menu-btn" title="Меню">
+                        <button class="icon-btn" id="app-menu-btn" title="Меню" data-i18n-title="menu_title">
                             <i class="fas fa-ellipsis-h"></i>
                         </button>
                         <div class="app-menu-dropdown" id="app-menu-dropdown">
                             <a href="https://github.com/devnil777/string-lom" target="_blank" class="menu-item">
                                 <i class="fab fa-github"></i>
-                                <span>Домашняя страница</span>
+                                <span data-i18n="home_page">Домашняя страница</span>
                             </a>
                             <a href="https://github.com/devnil777/string-lom/releases/latest" target="_blank"
                                 class="menu-item">
                                 <i class="fas fa-download"></i>
-                                <span>Скачать последний релиз</span>
+                                <span data-i18n="download_latest">Скачать последний релиз</span>
                             </a>
                             <div class="menu-divider"></div>
+
+                            <!-- Language Selector -->
+                            <div class="menu-item lang-item">
+                                <i class="fas fa-globe"></i>
+                                <select id="lang-select" class="menu-select">
+                                    <option value="en">English</option>
+                                    <option value="ru">Русский</option>
+                                </select>
+                            </div>
+
                             <div class="menu-item theme-item" id="theme-toggle-btn">
                                 <i class="fas fa-moon"></i>
-                                <span>Темная тема</span>
+                                <span data-i18n="theme_dark">Темная тема</span>
                                 <div class="switch">
                                     <div class="switch-handle"></div>
                                 </div>
@@ -60,24 +71,24 @@
                             <div class="menu-divider"></div>
                             <div class="menu-item version-item">
                                 <i class="fas fa-info-circle"></i>
-                                <span>Версия: <small><!-- VERSION_PLACEHOLDER --></small></span>
+                                <span><span data-i18n="version">Версия:</span> <small><!-- VERSION_PLACEHOLDER --></small></span>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="sidebar-actions">
-                    <button class="btn-sidebar-main" id="reset-btn-sidebar" title="Создать новую цепочку (Alt + N)">
-                        <i class="fas fa-plus"></i> Создать
+                    <button class="btn-sidebar-main" id="reset-btn-sidebar" title="Создать новую цепочку (Alt + N)" data-i18n-title="create_title">
+                        <i class="fas fa-plus"></i> <span data-i18n="create">Создать</span>
                     </button>
                     <button class="btn-sidebar-secondary" id="paste-chain-btn-sidebar"
-                        title="Импортировать цепочку (Alt + I)">
-                        <i class="fas fa-file-import"></i> Импортировать
+                        title="Импортировать цепочку (Alt + I)" data-i18n-title="import_title">
+                        <i class="fas fa-file-import"></i> <span data-i18n="import">Импортировать</span>
                     </button>
                 </div>
                 <div class="sidebar-content">
                     <div class="sidebar-h2-container">
-                        <h2>Сохраненные цепочки</h2>
-                        <button class="toggle-saved-btn" id="toggle-saved-btn" title="Свернуть/Развернуть">
+                        <h2 data-i18n="saved_chains">Сохраненные цепочки</h2>
+                        <button class="toggle-saved-btn" id="toggle-saved-btn" title="Свернуть/Развернуть" data-i18n-title="toggle_saved">
                             <i class="fas fa-chevron-up"></i>
                         </button>
                     </div>
@@ -91,16 +102,16 @@
                 <div class="workspace-toolbar" id="workspace-toolbar">
                     <div class="workspace-title" id="workspace-title-display">
                         <i class="fas fa-desktop" style="color:var(--primary)"></i>
-                        <span id="workspace-title-text">Новая цепочка</span>
+                        <span id="workspace-title-text" data-i18n="new_chain">Новая цепочка</span>
                     </div>
                     <div class="actions">
                         <button class="btn-toolbar" id="save-chain-btn" tabindex="-1"
-                            title="Сохранить текущую цепочку (Alt + S)"><i class="fas fa-save"></i> Сохранить</button>
-                        <button class="btn-toolbar" id="share-chain-btn" tabindex="-1" title="Поделиться цепочкой"><i
-                                class="fas fa-share-alt"></i> Поделиться</button>
+                            title="Сохранить текущую цепочку (Alt + S)" data-i18n-title="save_title"><i class="fas fa-save"></i> <span data-i18n="save">Сохранить</span></button>
+                        <button class="btn-toolbar" id="share-chain-btn" tabindex="-1" title="Поделиться цепочкой" data-i18n-title="share_title"><i
+                                class="fas fa-share-alt"></i> <span data-i18n="share">Поделиться</span></button>
                         <button class="btn-toolbar" id="copy-chain-btn" tabindex="-1"
-                            title="Экспортировать настройки цепочки (Alt + E)"><i class="fas fa-file-export"></i>
-                            Экспортировать</button>
+                            title="Экспортировать настройки цепочки (Alt + E)" data-i18n-title="export_title"><i class="fas fa-file-export"></i>
+                            <span data-i18n="export">Экспортировать</span></button>
                     </div>
                 </div>
 
@@ -117,12 +128,12 @@
                             <div class="block-header">
                                 <div class="block-title"><i class="fas fa-flag-checkered"
                                         style="color:var(--success)"></i>
-                                    <span>Финальный результат</span>
+                                    <span data-i18n="final_result">Финальный результат</span>
                                 </div>
                                 <div class="block-actions">
-                                    <button class="icon-btn" id="download-final-btn" title="Скачать результат"
+                                    <button class="icon-btn" id="download-final-btn" title="Скачать результат" data-i18n-title="download_final"
                                         style="font-size: 1em;"><i class="fas fa-download"></i></button>
-                                    <button class="icon-btn" id="copy-final-btn" title="Копировать результат"
+                                    <button class="icon-btn" id="copy-final-btn" title="Копировать результат" data-i18n-title="copy_final"
                                         style="font-size: 1em;"><i class="fas fa-copy"></i></button>
                                 </div>
                             </div>
@@ -133,16 +144,16 @@
                                 </div>
                                 <div class="params-grid" style="margin-top: 15px;">
                                     <div class="form-group">
-                                        <label>Разделитель при выводе</label>
+                                        <label data-i18n="output_delimiter">Разделитель при выводе</label>
                                         <div style="display: flex; gap: 8px;">
                                             <select id="final-delimiter-select" style="flex: 1;">
-                                                <option value="\n">Новая строка</option>
-                                                <option value=",">Запятая</option>
-                                                <option value=";">Точка с запятой</option>
-                                                <option value=" ">Пробел</option>
-                                                <option value="custom">Свой...</option>
+                                                <option value="\n" data-i18n="newline">Новая строка</option>
+                                                <option value="," data-i18n="comma">Запятая</option>
+                                                <option value=";" data-i18n="semicolon">Точка с запятой</option>
+                                                <option value=" " data-i18n="space">Пробел</option>
+                                                <option value="custom" data-i18n="custom">Свой...</option>
                                             </select>
-                                            <input type="text" id="final-custom-delimiter-input" placeholder="Текст..."
+                                            <input type="text" id="final-custom-delimiter-input" placeholder="Текст..." data-i18n="custom_placeholder"
                                                 style="display: none; width: 120px;">
                                         </div>
                                     </div>
@@ -161,12 +172,12 @@
     <div id="tool-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <div class="modal-title">Выберите инструмент</div>
+                <div class="modal-title" data-i18n="select_tool">Выберите инструмент</div>
                 <button class="close-modal" id="close-modal-btn">&times;</button>
             </div>
             <div class="modal-search-wrapper">
                 <i class="fas fa-search"></i>
-                <input type="text" id="tool-search-input" placeholder="Поиск инструментов (от 2-х символов)..."
+                <input type="text" id="tool-search-input" placeholder="Поиск инструментов (от 2-х символов)..." data-i18n="search_tools"
                     autocomplete="off">
             </div>
             <div class="tool-list" id="tool-list">
@@ -179,7 +190,7 @@
     <div id="dialog-modal" class="modal-overlay">
         <div class="modal dialog">
             <div class="modal-header">
-                <div class="modal-title" id="dialog-title">Подтверждение</div>
+                <div class="modal-title" id="dialog-title" data-i18n="confirmation">Подтверждение</div>
                 <button class="close-modal" id="close-dialog-btn">&times;</button>
             </div>
             <div class="dialog-body" id="dialog-body">
