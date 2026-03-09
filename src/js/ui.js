@@ -334,13 +334,11 @@ class BlockApp {
     }
 
     updateUIStrings() {
-        if (typeof i18n !== 'undefined') {
-            i18n.translatePage();
-            this.updateWorkspaceTitle();
-            this.renderSavedChains();
-            const searchInput = document.getElementById('tool-search-input');
-            this.setupModal(searchInput?.value || '');
-        }
+        i18n.translatePage();
+        this.updateWorkspaceTitle();
+        this.renderSavedChains();
+        const searchInput = document.getElementById('tool-search-input');
+        this.setupModal(searchInput?.value || '');
     }
 
     initTheme() {
@@ -363,13 +361,13 @@ class BlockApp {
             document.body.classList.add('light-theme');
             if (btn) {
                 btn.querySelector('i').className = 'fas fa-sun';
-                btn.querySelector('span').textContent = typeof i18n !== 'undefined' ? i18n.t('theme_light') : 'Светлая тема';
+                btn.querySelector('span').textContent = i18n.t('theme_light');
             }
         } else {
             document.body.classList.remove('light-theme');
             if (btn) {
                 btn.querySelector('i').className = 'fas fa-moon';
-                btn.querySelector('span').textContent = typeof i18n !== 'undefined' ? i18n.t('theme_dark') : 'Темная тема';
+                btn.querySelector('span').textContent = i18n.t('theme_dark');
             }
         }
         localStorage.setItem('stringlom_theme', theme);
@@ -444,7 +442,7 @@ class BlockApp {
         const titleEl = document.getElementById('workspace-title-display');
         if (!titleEl || this.isEditingTitle) return;
 
-        const name = this.currentChainName ? this.currentChainName : (typeof i18n !== 'undefined' ? i18n.t('new_chain') : 'Новая цепочка');
+        const name = this.currentChainName ? this.currentChainName : i18n.t('new_chain');
         titleEl.innerHTML = `<i class="fas fa-desktop" style="color:var(--primary)"></i> <span id="workspace-title-text">${name}</span>`;
 
         // Update Page Title
@@ -452,7 +450,7 @@ class BlockApp {
 
         if (this.currentChainName) {
             titleEl.style.cursor = 'pointer';
-            titleEl.title = typeof i18n !== 'undefined' ? i18n.t('rename_title') : 'Нажмите, чтобы переименовать (Alt + R)';
+            titleEl.title = i18n.t('rename_title');
             titleEl.onclick = () => this.startEditingTitle();
             titleEl.onmouseover = () => { titleEl.style.color = 'var(--primary)'; };
             titleEl.onmouseout = () => { titleEl.style.color = 'var(--dark)'; };
@@ -470,9 +468,9 @@ class BlockApp {
         this.isEditingTitle = true;
 
         const titleEl = document.getElementById('workspace-title-display');
-        const confirmTitle = typeof i18n !== 'undefined' ? i18n.t('confirm') : 'Подтвердить';
-        const cancelTitle = typeof i18n !== 'undefined' ? i18n.t('cancel') : 'Отмена';
-        const placeholder = typeof i18n !== 'undefined' ? i18n.t('chain_name_placeholder') : 'Название цепочки...';
+        const confirmTitle = i18n.t('confirm');
+        const cancelTitle = i18n.t('cancel');
+        const placeholder = i18n.t('chain_name_placeholder');
 
         titleEl.innerHTML = `
             <div class="workspace-title-editor">
@@ -525,7 +523,7 @@ class BlockApp {
         if (isLarge) modalContainer.classList.add('large');
         else modalContainer.classList.remove('large');
 
-        titleEl.textContent = title || (typeof i18n !== 'undefined' ? i18n.t('confirmation') : 'Подтверждение');
+        titleEl.textContent = title || i18n.t('confirmation');
         bodyEl.innerHTML = '';
         if (typeof body === 'string') {
             bodyEl.innerHTML = `<div style="padding-top: 4px;">${body}</div>`;
@@ -551,9 +549,9 @@ class BlockApp {
     }
 
     confirmAction(msg, onConfirm, isDanger = false) {
-        const confirmTitle = typeof i18n !== 'undefined' ? i18n.t('confirmation') : 'Подтверждение';
-        const cancelText = typeof i18n !== 'undefined' ? i18n.t('cancel') : 'Отмена';
-        const confirmText = typeof i18n !== 'undefined' ? i18n.t('confirm') : 'Подтвердить';
+        const confirmTitle = i18n.t('confirmation');
+        const cancelText = i18n.t('cancel');
+        const confirmText = i18n.t('confirm');
         this.customDialog({
             title: confirmTitle,
             body: msg,
@@ -571,16 +569,16 @@ class BlockApp {
         input.style.width = '100%';
         input.style.marginTop = '15px';
         input.style.boxSizing = 'border-box';
-        input.placeholder = options.placeholder || (typeof i18n !== 'undefined' ? i18n.t('enter_value') : 'Введите значение...');
+        input.placeholder = options.placeholder || i18n.t('enter_value');
         if (options.textarea) input.style.minHeight = '150px';
 
         const wrapper = document.createElement('div');
         wrapper.textContent = msg;
         wrapper.appendChild(input);
 
-        const cancelText = typeof i18n !== 'undefined' ? i18n.t('cancel') : 'Отмена';
-        const okText = typeof i18n !== 'undefined' ? i18n.t('ok') : 'ОК';
-        const inputTitle = typeof i18n !== 'undefined' ? i18n.t('input_data') : 'Ввод данных';
+        const cancelText = i18n.t('cancel');
+        const okText = i18n.t('ok');
+        const inputTitle = i18n.t('input_data');
 
         this.customDialog({
             title: options.title || inputTitle,
@@ -598,8 +596,8 @@ class BlockApp {
     }
 
     alertAction(msg, title) {
-        const alertTitle = title || (typeof i18n !== 'undefined' ? i18n.t('attention') : 'Внимание');
-        const closeText = typeof i18n !== 'undefined' ? i18n.t('close') : 'Закрыть';
+        const alertTitle = title || i18n.t('attention');
+        const closeText = i18n.t('close');
         this.customDialog({
             title: alertTitle,
             body: msg,
@@ -686,7 +684,7 @@ class BlockApp {
             settings = data.settings;
         }
 
-        const defaultSource = typeof i18n !== 'undefined' ? i18n.t('default_source_text') : 'Пример строки\nВторая строка\n123';
+        const defaultSource = i18n.t('default_source_text');
         const currentSourceValue = (this.chain.length > 0 && !clearData) ? this.chain[0].value : defaultSource;
 
         this.chain = blocksData.map(blockData => {
@@ -728,12 +726,12 @@ class BlockApp {
             navigator.clipboard.writeText(url.toString()).then(() => {
                 const btn = document.getElementById('share-chain-btn');
                 const original = btn.innerHTML;
-                const copiedText = typeof i18n !== 'undefined' ? i18n.t('copied') : 'Скопировано';
+                const copiedText = i18n.t('copied');
                 btn.innerHTML = `<i class="fas fa-check" style="color:var(--success)"></i> ${copiedText}`;
                 setTimeout(() => btn.innerHTML = original, 1500);
             });
         } catch (e) {
-            this.alertAction(typeof i18n !== 'undefined' ? i18n.t('share_error') : 'Ошибка при создании ссылки');
+            this.alertAction(i18n.t('share_error'));
         }
     }
 
@@ -818,26 +816,26 @@ class BlockApp {
         navigator.clipboard.writeText(txt).then(() => {
             const btn = document.getElementById('copy-chain-btn');
             const original = btn.innerHTML;
-            const exportedText = typeof i18n !== 'undefined' ? i18n.t('exported') : 'Экспортировано';
+            const exportedText = i18n.t('exported');
             btn.innerHTML = `<i class="fas fa-check" style="color:var(--success)"></i> ${exportedText}`;
             setTimeout(() => btn.innerHTML = original, 1500);
         }).catch(err => {
-            const errorMsg = typeof i18n !== 'undefined' ? i18n.t('copy_clipboard_error') : 'Не удалось скопировать в буфер обмена. Используйте экспорт в файл или скопируйте вручную.';
-            const exportTitle = typeof i18n !== 'undefined' ? i18n.t('export') : 'Экспорт';
+            const errorMsg = i18n.t('copy_clipboard_error');
+            const exportTitle = i18n.t('export');
             this.alertAction(errorMsg, exportTitle);
         });
     }
 
     importChain() {
-        const promptMsg = typeof i18n !== 'undefined' ? i18n.t('import_prompt') : 'Вставьте ранее скопированный код цепочки (JSON):';
-        const importTitle = typeof i18n !== 'undefined' ? i18n.t('import') : 'Импорт цепочки';
+        const promptMsg = i18n.t('import_prompt');
+        const importTitle = i18n.t('import');
         this.promptAction(promptMsg, '', (txt) => {
             if (!txt) return;
             try {
                 const importData = JSON.parse(txt);
                 const blocks = Array.isArray(importData) ? importData : importData.blocks;
                 if (!Array.isArray(blocks) || blocks.length === 0 || blocks[0].type !== 'source') {
-                    const formatError = typeof i18n !== 'undefined' ? i18n.t('invalid_chain_format') : 'Некорректный формат цепочки';
+                    const formatError = i18n.t('invalid_chain_format');
                     throw new Error(formatError);
                 }
                 this.currentChainName = null;
@@ -846,8 +844,8 @@ class BlockApp {
                 this.updateWorkspaceTitle();
                 this.renderSavedChains();
             } catch (e) {
-                const errorMsg = typeof i18n !== 'undefined' ? i18n.t('import_error') : 'Ошибка импорта: Неверный формат данных';
-                const attentionTitle = typeof i18n !== 'undefined' ? i18n.t('attention') : 'Внимание';
+                const errorMsg = i18n.t('import_error');
+                const attentionTitle = i18n.t('attention');
                 this.alertAction(errorMsg, attentionTitle);
             }
         }, { textarea: true, title: importTitle, placeholder: '[{ "type": "source", ... }]', isLarge: true });
@@ -902,7 +900,7 @@ class BlockApp {
             const btn = document.getElementById('save-chain-btn');
             if (btn) {
                 const original = btn.innerHTML;
-                const savedText = typeof i18n !== 'undefined' ? i18n.t('saved') : 'Сохранено';
+                const savedText = i18n.t('saved');
                 btn.innerHTML = `<i class="fas fa-check" style="color:var(--success)"></i> ${savedText}`;
                 setTimeout(() => btn.innerHTML = original, 1500);
             }
@@ -910,8 +908,8 @@ class BlockApp {
         };
 
         if (!name) {
-            const promptMsg = typeof i18n !== 'undefined' ? i18n.t('enter_chain_name') : 'Введите название для этой цепочки:';
-            const saveTitle = typeof i18n !== 'undefined' ? i18n.t('save') : 'Сохранение цепочки';
+            const promptMsg = i18n.t('enter_chain_name');
+            const saveTitle = i18n.t('save');
             this.promptAction(promptMsg, '', proceedSave, { title: saveTitle });
         } else {
             proceedSave(name);
@@ -919,7 +917,7 @@ class BlockApp {
     }
 
     deleteSavedChain(id) {
-        const confirmMsg = typeof i18n !== 'undefined' ? i18n.t('delete_chain_confirm') : 'Точно удалить сохраненную цепочку?';
+        const confirmMsg = i18n.t('delete_chain_confirm');
         this.confirmAction(confirmMsg, () => {
             let saved = this.getSavedChains();
             saved = saved.filter(x => x.id !== id);
@@ -947,7 +945,7 @@ class BlockApp {
         };
 
         if (this.isModified) {
-            const confirmMsg = typeof i18n !== 'undefined' ? i18n.t('switch_chain_confirm') : 'Переключиться на другую цепочку? Все несохраненные изменения текущей будут утеряны.';
+            const confirmMsg = i18n.t('switch_chain_confirm');
             this.confirmAction(confirmMsg, proceed, false);
         } else {
             proceed();
@@ -972,7 +970,7 @@ class BlockApp {
         list.style.display = 'flex';
 
         if (saved.length === 0) {
-            const noSavedMsg = typeof i18n !== 'undefined' ? i18n.t('no_saved_chains') : 'Нет сохраненных';
+            const noSavedMsg = i18n.t('no_saved_chains');
             list.innerHTML = `<div style="color:var(--gray); font-size:0.85rem; text-align:center; margin-top: 10px;">${noSavedMsg}</div>`;
             return;
         }
@@ -995,7 +993,7 @@ class BlockApp {
             const btnDel = document.createElement('button');
             btnDel.className = 'btn-saved delete';
             btnDel.innerHTML = '<i class="fas fa-trash"></i>';
-            btnDel.title = typeof i18n !== 'undefined' ? i18n.t('delete') : 'Удалить';
+            btnDel.title = i18n.t('delete');
             btnDel.onclick = (e) => {
                 e.stopPropagation();
                 this.deleteSavedChain(item.id);
@@ -1014,7 +1012,7 @@ class BlockApp {
         const id = this.genId();
         const toolDef = type === 'source' ? null : TOOLS.find(t => t.id === type);
 
-        const defaultSourceText = typeof i18n !== 'undefined' ? i18n.t('default_source_text') : 'Пример строки\nВторая строка\n123';
+        const defaultSourceText = i18n.t('default_source_text');
         const block = {
             id: id,
             type: type,
@@ -1071,8 +1069,8 @@ class BlockApp {
             document.body.appendChild(toast);
         }
 
-        const blockRemovedText = typeof i18n !== 'undefined' ? i18n.t('block_removed') : 'Блок удален';
-        const restoreBlockText = typeof i18n !== 'undefined' ? i18n.t('restore_block') : 'Восстановить блок';
+        const blockRemovedText = i18n.t('block_removed');
+        const restoreBlockText = i18n.t('restore_block');
 
         toast.innerHTML = `
             <div class="undo-content">
@@ -1122,7 +1120,7 @@ class BlockApp {
         }
 
         if (this.chain.length === 1) {
-            const addSectionMsg = typeof i18n !== 'undefined' ? i18n.t('add_block') : 'Добавить блок';
+            const addSectionMsg = i18n.t('add_block');
             const addSect = document.createElement('div');
             addSect.className = 'add-section-empty';
             addSect.innerHTML = `<button class="add-btn-empty" data-i18n="add_block"><i class="fas fa-plus"></i> ${addSectionMsg}</button>`;
@@ -1138,8 +1136,8 @@ class BlockApp {
             btn.style.padding = '6px 16px';
             btn.style.fontSize = '0.85rem';
 
-            const expandBlocksMsg = typeof i18n !== 'undefined' ? i18n.t('expand_blocks') : 'Развернуть блоки';
-            const collapseBlocksMsg = typeof i18n !== 'undefined' ? i18n.t('collapse_blocks') : 'Свернуть блоки';
+            const expandBlocksMsg = i18n.t('expand_blocks');
+            const collapseBlocksMsg = i18n.t('collapse_blocks');
 
             if (this.isBlocksCollapsed) {
                 btn.innerHTML = `<i class="fas fa-chevron-down"></i> ${expandBlocksMsg} (${this.chain.length - 1})`;
@@ -1184,14 +1182,14 @@ class BlockApp {
 
             if (btn) {
                 const original = btn.innerHTML;
-                const createdText = typeof i18n !== 'undefined' ? i18n.t('created') : 'Создано';
+                const createdText = i18n.t('created');
                 btn.innerHTML = `<i class="fas fa-check" style="color:var(--success)"></i> ${createdText}`;
                 setTimeout(() => btn.innerHTML = original, 1500);
             }
         };
 
         if (this.isModified) {
-            const confirmMsg = typeof i18n !== 'undefined' ? i18n.t('new_chain_confirm') : 'Создать новую цепочку? Все несохраненные изменения текущей будут утеряны.';
+            const confirmMsg = i18n.t('new_chain_confirm');
             this.confirmAction(confirmMsg, proceed, false);
         } else {
             proceed();
@@ -1292,7 +1290,7 @@ class BlockApp {
 
     renderBlock(block, index, parentElement) {
         const isSource = block.type === 'source';
-        const toolDef = isSource ? { title: typeof i18n !== 'undefined' ? i18n.t('input_data') : 'Исходный текст', icon: 'fas fa-file-alt' } : TOOLS.find(t => t.id === block.type);
+        const toolDef = isSource ? { title: i18n.t('input_data'), icon: 'fas fa-file-alt' } : TOOLS.find(t => t.id === block.type);
 
         const wrapper = document.createElement('div');
         wrapper.className = 'block-wrapper';
@@ -1304,7 +1302,7 @@ class BlockApp {
             const outerHandle = document.createElement('div');
             outerHandle.className = 'drag-handle-outer';
             outerHandle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
-            outerHandle.title = typeof i18n !== 'undefined' ? i18n.t('drag_to_move') : 'Потяните, чтобы переместить';
+            outerHandle.title = i18n.t('drag_to_move');
             wrapper.appendChild(outerHandle);
 
             wrapper.draggable = true;
@@ -1352,7 +1350,7 @@ class BlockApp {
         const title = document.createElement('div');
         title.className = 'block-title';
         const badgeHtml = isSource ? '' : `<span class="badge">#${index}</span>`;
-        title.innerHTML = `<i class="${toolDef.icon}"></i> <span>${isSource ? toolDef.title : (typeof i18n !== 'undefined' ? i18n.t(toolDef.title) : toolDef.title)}</span> ${badgeHtml}`;
+        title.innerHTML = `<i class="${toolDef.icon}"></i> <span>${isSource ? toolDef.title : i18n.t(toolDef.title)}</span> ${badgeHtml}`;
 
         const actions = document.createElement('div');
         actions.className = 'block-actions';
@@ -1369,7 +1367,7 @@ class BlockApp {
             loadBtn.className = 'icon-btn';
             loadBtn.setAttribute('data-i18n-title', 'load_from_file');
             loadBtn.innerHTML = '<i class="fas fa-file-import"></i>';
-            loadBtn.title = typeof i18n !== 'undefined' ? i18n.t('load_from_file') : 'Загрузить из файла';
+            loadBtn.title = i18n.t('load_from_file');
             loadBtn.onclick = () => fileInput.click();
 
             actions.appendChild(fileInput);
@@ -1381,7 +1379,7 @@ class BlockApp {
                 helpBtn.target = '_blank';
                 helpBtn.className = 'icon-btn';
                 helpBtn.innerHTML = '<i class="fas fa-question-circle"></i>';
-                helpBtn.title = typeof i18n !== 'undefined' ? i18n.t('help') : 'Справка';
+                helpBtn.title = i18n.t('help');
                 actions.appendChild(helpBtn);
             }
 
@@ -1389,7 +1387,7 @@ class BlockApp {
             addAboveBtn.className = 'icon-btn';
             addAboveBtn.setAttribute('data-i18n-title', 'add_block_above');
             addAboveBtn.innerHTML = '<div style="position:relative; display:inline-block;"><i class="fas fa-plus"></i><i class="fas fa-caret-up" style="position:absolute; top:-4px; right:-6px; font-size:0.6rem; opacity:0.8;"></i></div>';
-            addAboveBtn.title = typeof i18n !== 'undefined' ? i18n.t('add_block_above') : 'Добавить блок выше (Alt + B)';
+            addAboveBtn.title = i18n.t('add_block_above');
             addAboveBtn.onclick = () => this.openToolModal(index);
             actions.appendChild(addAboveBtn);
 
@@ -1397,7 +1395,7 @@ class BlockApp {
             addBelowBtn.className = 'icon-btn';
             addBelowBtn.setAttribute('data-i18n-title', 'add_block_below');
             addBelowBtn.innerHTML = '<div style="position:relative; display:inline-block;"><i class="fas fa-plus"></i><i class="fas fa-caret-down" style="position:absolute; bottom:-4px; right:-6px; font-size:0.6rem; opacity:0.8;"></i></div>';
-            addBelowBtn.title = typeof i18n !== 'undefined' ? i18n.t('add_block_below') : 'Добавить блок ниже (Alt + A)';
+            addBelowBtn.title = i18n.t('add_block_below');
             addBelowBtn.onclick = () => this.openToolModal(index + 1);
             actions.appendChild(addBelowBtn);
 
@@ -1405,7 +1403,7 @@ class BlockApp {
             delBtn.className = 'icon-btn delete';
             delBtn.setAttribute('data-i18n-title', 'remove_block_alt');
             delBtn.innerHTML = '<i class="fas fa-trash"></i>';
-            delBtn.title = typeof i18n !== 'undefined' ? i18n.t('remove_block_alt') : 'Удалить блок (Alt + Delete)';
+            delBtn.title = i18n.t('remove_block_alt');
             delBtn.onclick = () => this.removeBlock(index);
             actions.appendChild(delBtn);
         }
@@ -1423,7 +1421,7 @@ class BlockApp {
             const textarea = document.createElement('textarea');
             textarea.value = block.value;
             textarea.rows = 5;
-            textarea.placeholder = typeof i18n !== 'undefined' ? i18n.t('source_placeholder') : 'Введите текст здесь (или перетащите файл сюда)...';
+            textarea.placeholder = i18n.t('source_placeholder');
             textarea.addEventListener('input', (e) => {
                 block.value = e.target.value;
                 if (isSource) {
@@ -1464,7 +1462,7 @@ class BlockApp {
             const grpDelim = document.createElement('div');
             grpDelim.className = 'form-group';
             const lblDelim = document.createElement('label');
-            lblDelim.textContent = typeof i18n !== 'undefined' ? i18n.t('line_delimiter') : 'Разделитель строк';
+            lblDelim.textContent = i18n.t('line_delimiter');
 
             const flexBox = document.createElement('div');
             flexBox.style.display = 'flex';
@@ -1472,11 +1470,11 @@ class BlockApp {
 
             const selDelim = document.createElement('select');
             selDelim.style.flex = '1';
-            const newlineText = typeof i18n !== 'undefined' ? i18n.t('newline') : 'Новая строка';
-            const commaText = typeof i18n !== 'undefined' ? i18n.t('comma') : 'Запятая';
-            const semicolonText = typeof i18n !== 'undefined' ? i18n.t('semicolon') : 'Точка с запятой';
-            const spaceText = typeof i18n !== 'undefined' ? i18n.t('space') : 'Пробел';
-            const customText = typeof i18n !== 'undefined' ? i18n.t('custom') : 'Свой...';
+            const newlineText = i18n.t('newline');
+            const commaText = i18n.t('comma');
+            const semicolonText = i18n.t('semicolon');
+            const spaceText = i18n.t('space');
+            const customText = i18n.t('custom');
 
             [
                 { v: '\\n', l: newlineText },
@@ -1494,7 +1492,7 @@ class BlockApp {
 
             const customInput = document.createElement('input');
             customInput.type = 'text';
-            customInput.placeholder = typeof i18n !== 'undefined' ? i18n.t('custom_placeholder') : 'Текст...';
+            customInput.placeholder = i18n.t('custom_placeholder');
             customInput.style.width = '120px';
             customInput.value = block.params.customDelimiter || '';
             customInput.style.display = selDelim.value === 'custom' ? 'block' : 'none';
@@ -1528,7 +1526,7 @@ class BlockApp {
                     const grp = document.createElement('div');
                     grp.className = 'form-group';
                     const lbl = document.createElement('label');
-                    lbl.textContent = typeof i18n !== 'undefined' ? i18n.t(param.label) : param.label;
+                    lbl.textContent = i18n.t(param.label);
                     grp.appendChild(lbl);
 
                     let field;
@@ -1536,11 +1534,11 @@ class BlockApp {
 
                     if (param.type === 'select' || param.type === 'delimiter') {
                         field = document.createElement('select');
-                        const newlineText = typeof i18n !== 'undefined' ? i18n.t('newline') : 'Новая строка';
-                        const commaText = typeof i18n !== 'undefined' ? i18n.t('comma') : 'Запятая';
-                        const semicolonText = typeof i18n !== 'undefined' ? i18n.t('semicolon') : 'Точка с запятой';
-                        const spaceText = typeof i18n !== 'undefined' ? i18n.t('space') : 'Пробел';
-                        const customText = typeof i18n !== 'undefined' ? i18n.t('custom') : 'Свой...';
+                        const newlineText = i18n.t('newline');
+                        const commaText = i18n.t('comma');
+                        const semicolonText = i18n.t('semicolon');
+                        const spaceText = i18n.t('space');
+                        const customText = i18n.t('custom');
 
                         const options = param.type === 'delimiter' ? [
                             { v: '\\n', l: newlineText },
@@ -1548,7 +1546,7 @@ class BlockApp {
                             { v: ';', l: semicolonText },
                             { v: ' ', l: spaceText },
                             { v: 'custom', l: customText }
-                        ] : (param.options || []).map(o => ({ v: o.v, l: typeof i18n !== 'undefined' ? i18n.t(o.l) : o.l }));
+                        ] : (param.options || []).map(o => ({ v: o.v, l: i18n.t(o.l) }));
 
                         if (param.type === 'delimiter' && currentVal !== undefined) {
                             const knownVals = options.map(o => o.v);
@@ -1582,7 +1580,7 @@ class BlockApp {
                         if (param.type === 'delimiter') {
                             customDelimInput = document.createElement('input');
                             customDelimInput.type = 'text';
-                            customDelimInput.placeholder = typeof i18n !== 'undefined' ? i18n.t('custom_placeholder') : 'Текст...';
+                            customDelimInput.placeholder = i18n.t('custom_placeholder');
                             customDelimInput.style.width = '120px';
                             const customKey = `${param.id}Custom`;
                             customDelimInput.value = block.params[customKey] || '';
@@ -1618,7 +1616,7 @@ class BlockApp {
                         field = document.createElement('textarea');
                         field.value = currentVal;
                         field.rows = 3;
-                        field.placeholder = typeof i18n !== 'undefined' ? i18n.t(param.placeholder || '') : (param.placeholder || '');
+                        field.placeholder = i18n.t(param.placeholder || '');
                         field.addEventListener('input', (e) => {
                             block.params[param.id] = e.target.value;
                             this.runChain();
@@ -1628,7 +1626,7 @@ class BlockApp {
                         field = document.createElement('input');
                         field.type = 'text';
                         field.value = currentVal;
-                        field.placeholder = typeof i18n !== 'undefined' ? i18n.t(param.placeholder || '') : (param.placeholder || '');
+                        field.placeholder = i18n.t(param.placeholder || '');
                         field.addEventListener('input', (e) => {
                             block.params[param.id] = e.target.value;
                             this.runChain();
@@ -1743,7 +1741,7 @@ class BlockApp {
                 if (Array.isArray(currentLines)) {
                     const badge = document.createElement('span');
                     badge.className = 'badge';
-                    const linesCountMsg = typeof i18n !== 'undefined' ? i18n.t('lines_count') : 'Строк:';
+                    const linesCountMsg = i18n.t('lines_count');
                     badge.textContent = `${linesCountMsg} ${currentLines.length}`;
                     finalStats.appendChild(badge);
                 }
@@ -1775,8 +1773,8 @@ class BlockApp {
             if (isFiltering) {
                 cat.tools.forEach(tId => {
                     const t = TOOLS.find(x => x.id === tId);
-                    const title = typeof i18n !== 'undefined' ? i18n.t(t.title) : t.title;
-                    const desc = typeof i18n !== 'undefined' ? i18n.t(t.description) : t.description;
+                    const title = i18n.t(t.title);
+                    const desc = i18n.t(t.description);
                     if (t && (title.toLowerCase().includes(query) || desc.toLowerCase().includes(query))) {
                         toolsToShow.push(t);
                     }
@@ -1795,7 +1793,7 @@ class BlockApp {
             if (isFiltering) {
                 catDiv.style.display = 'contents';
             } else {
-                const catTitle = typeof i18n !== 'undefined' ? i18n.t(cat.title) : cat.title;
+                const catTitle = i18n.t(cat.title);
                 catDiv.innerHTML = `<div class="tool-category-title">${catTitle}</div>`;
             }
 
@@ -1806,9 +1804,9 @@ class BlockApp {
                 const item = document.createElement('div');
                 item.className = 'tool-item';
                 item.tabIndex = 0;
-                const toolTitle = typeof i18n !== 'undefined' ? i18n.t(t.title) : t.title;
-                const toolDesc = typeof i18n !== 'undefined' ? i18n.t(t.description) : t.description;
-                const addTitle = typeof i18n !== 'undefined' ? i18n.t('add_without_closing') : 'Добавить без закрытия';
+                const toolTitle = i18n.t(t.title);
+                const toolDesc = i18n.t(t.description);
+                const addTitle = i18n.t('add_without_closing');
                 item.innerHTML = `
                     <i class="${t.icon}"></i>
                     <div class="tool-info">
