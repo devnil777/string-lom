@@ -87,8 +87,14 @@ class QwenProvider(BaseProvider):
     async def proxy_request(self, target_url: str, method: str, headers: Dict, body: Any) -> JSONResponse:
         logger.debug(f"Proxying {method} to {target_url}")
 
-        filtered_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'origin', 'referer', 'content-length', 'cookie']}
-        filtered_headers['Host'] = target_url.split('//')[-1].split('/')[0]
+        filtered_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'origin', 'referer', 'content-length', 'cookie', 'connection']}
+
+        from urllib.parse import urlparse
+        parsed_url = urlparse(target_url)
+        filtered_headers['Host'] = parsed_url.netloc
+
+        if 'user-agent' not in [k.lower() for k in filtered_headers.keys()]:
+            filtered_headers['User-Agent'] = 'vscode-qwen-copilot/0.2.0'
 
         try:
             loop = asyncio.get_event_loop()

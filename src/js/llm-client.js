@@ -38,8 +38,11 @@ class LLMClient {
             }
             token = creds.access_token;
             if (creds.resourceUrl) {
-                const ru = creds.resourceUrl.startsWith('http') ? creds.resourceUrl : `https://${creds.resourceUrl}`;
-                endpoint = (ru.endsWith('/v1') ? ru : `${ru}/v1`) + '/chat/completions';
+                let ru = creds.resourceUrl.startsWith('http') ? creds.resourceUrl : `https://${creds.resourceUrl}`;
+                if (ru.includes('portal.qwen.ai') && !ru.includes('/api')) ru += '/api';
+                if (ru.includes('dashscope.aliyuncs.com') && !ru.includes('/compatible-mode')) ru += '/compatible-mode';
+                const base = ru.endsWith('/v1') ? ru : (ru.endsWith('/') ? ru + 'v1' : ru + '/v1');
+                endpoint = `${base}/chat/completions`;
             }
         }
 
@@ -190,15 +193,23 @@ class LLMClient {
             if (!creds || !creds.access_token) return this.providers[this.settings.provider];
             token = creds.access_token;
             if (creds.resourceUrl) {
-                const ru = creds.resourceUrl.startsWith('http') ? creds.resourceUrl : `https://${creds.resourceUrl}`;
-                endpoint = (ru.endsWith('/v1') ? ru : `${ru}/v1`) + '/models';
+                let ru = creds.resourceUrl.startsWith('http') ? creds.resourceUrl : `https://${creds.resourceUrl}`;
+                if (ru.includes('portal.qwen.ai') && !ru.includes('/api')) ru += '/api';
+                if (ru.includes('dashscope.aliyuncs.com') && !ru.includes('/compatible-mode')) ru += '/compatible-mode';
+                const base = ru.endsWith('/v1') ? ru : (ru.endsWith('/') ? ru + 'v1' : ru + '/v1');
+                endpoint = `${base}/models`;
+            } else {
+                endpoint = 'https://dashscope.aliyuncs.com/compatible-mode/v1/models';
             }
         }
 
         try {
             const proxyUrl = `${this.settings.baseUrl}/proxy?url=${encodeURIComponent(endpoint)}`;
             const response = await fetch(proxyUrl, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
             });
             if (!response.ok) throw new Error('Failed to fetch models');
             const data = await response.json();
