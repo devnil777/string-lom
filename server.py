@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 HOST = "127.0.0.1"
+CONFIG_FILE = os.path.expanduser("~/config.json")
 
 def get_free_port():
     for port in range(20000, 30001):
@@ -32,8 +33,26 @@ def get_free_port():
                 continue
     raise RuntimeError("No free ports in range 20000-30000")
 
-PORT = get_free_port()
-API_UUID = str(uuid.uuid4())
+def load_or_create_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                config = json.load(f)
+                return config['port'], config['uuid']
+        except Exception as e:
+            logger.error(f"Error loading config: {e}")
+
+    port = get_free_port()
+    api_uuid = str(uuid.uuid4())
+    config = {'port': port, 'uuid': api_uuid}
+    try:
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(config, f)
+    except Exception as e:
+        logger.error(f"Error saving config: {e}")
+    return port, api_uuid
+
+PORT, API_UUID = load_or_create_config()
 BASE_URL = f"http://{HOST}:{PORT}/{API_UUID}"
 
 # --- Providers (Strategy Pattern) ---
@@ -60,7 +79,7 @@ class QwenProvider(BaseProvider):
 
     async def proxy_request(self, target_url: str, method: str, headers: Dict, body: Any) -> JSONResponse:
         logger.debug(f"Proxying {method} to {target_url}")
-        filtered_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'origin', 'referer']}
+        filtered_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'origin', 'referer', 'content-length']}
         filtered_headers['Host'] = target_url.split('//')[-1].split('/')[0]
 
         try:
@@ -72,12 +91,14 @@ class QwenProvider(BaseProvider):
                     url=target_url,
                     headers=filtered_headers,
                     json=body,
-                    timeout=60
+                    timeout=60,
+                    allow_redirects=True
                 )
             )
             resp_headers = dict(response.headers)
-            for h in ['content-encoding', 'transfer-encoding', 'content-length', 'connection']:
+            for h in ['content-encoding', 'transfer-encoding', 'content-length', 'connection', 'access-control-allow-origin']:
                 resp_headers.pop(h, None)
+
             try:
                 data = response.json()
             except:
@@ -130,31 +151,26 @@ class QwenProvider(BaseProvider):
         except:
             return JSONResponse(content={"error": "Invalid response from provider", "text": r.text}, status_code=r.status_code)
 
-    async def refresh_token(self, refresh_token: str):
-        payload = {
-            "grant_type": "refresh_token",
-            "client_id": self.client_id,
-            "refresh_token": refresh_token
-        }
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "vscode-qwen-copilot/0.2.0"
-        }
-        r = requests.post(self.token_url, data=urlencode(payload), headers=headers)
-        try:
-            return JSONResponse(content=r.json(), status_code=r.status_code)
-        except:
-            return JSONResponse(content={"error": "Invalid response from provider", "text": r.text}, status_code=r.status_code)
-
 # --- FastAPI App ---
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+# Important: add CORSMiddleware BEFORE other middlewares to handle preflight
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 qwen_provider = QwenProvider()
 
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
+    # Allow OPTIONS for CORS preflight
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
     client_host = request.client.host
     if client_host not in ["127.0.0.1", "localhost", "::1"]:
         return JSONResponse(content={"error": "Forbidden: Localhost only"}, status_code=403)
@@ -179,17 +195,20 @@ async def device_code(body: Dict):
 async def poll(body: Dict):
     return await qwen_provider.poll_token(body.get("device_code"), body.get("code_verifier"))
 
-@app.post(f"/{API_UUID}/auth/refresh")
-async def refresh(body: Dict):
-    return await qwen_provider.refresh_token(body.get("refresh_token"))
-
 @app.api_route(f"/{API_UUID}/proxy", methods=["GET", "POST", "PUT", "DELETE"])
 async def proxy(request: Request):
     target_url = request.query_params.get("url")
     if not target_url: raise HTTPException(status_code=400, detail="Missing url parameter")
     method = request.method
     headers = dict(request.headers)
-    body = await request.json() if method in ["POST", "PUT"] else None
+
+    body = None
+    if method in ["POST", "PUT"]:
+        try:
+            body = await request.json()
+        except:
+            body = None
+
     return await qwen_provider.proxy_request(target_url, method, headers, body)
 
 if __name__ == "__main__":
