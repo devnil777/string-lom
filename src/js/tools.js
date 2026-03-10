@@ -1007,6 +1007,7 @@ const TOOLS = [
             { id: 'batchSize', type: 'number', label: 'tool_llm_batch_size', value: 1 }
         ],
         async: true,
+        manualRun: true,
         process: async (lines, params, blockId, ui) => {
             return await window.llmClient.process(lines, params, blockId, ui);
         }

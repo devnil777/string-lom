@@ -1102,6 +1102,7 @@ class BlockApp {
             id: id,
             type: type,
             params: type === 'source' ? { delimiter: '\\n' } : {},
+            manualRun: toolDef ? toolDef.manualRun === true : false,
             value: type === 'source' ? (localStorage.getItem('strings_last_source') || defaultSourceText) : null
         };
 
@@ -1491,16 +1492,6 @@ class BlockApp {
             addBelowBtn.onclick = () => this.openToolModal(index + 1);
             actions.appendChild(addBelowBtn);
 
-            const manualBtn = document.createElement('button');
-            manualBtn.className = 'icon-btn' + (block.manualRun ? ' active' : '');
-            manualBtn.innerHTML = '<i class="fas fa-play-circle"></i>';
-            manualBtn.title = i18n.t('tool_llm_manual_run');
-            manualBtn.onclick = () => {
-                block.manualRun = !block.manualRun;
-                this.reRenderAll();
-                this.isModified = true;
-            };
-            actions.appendChild(manualBtn);
 
             const delBtn = document.createElement('button');
             delBtn.className = 'icon-btn delete';

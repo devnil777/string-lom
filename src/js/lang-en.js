@@ -274,7 +274,7 @@ var LANG_EN = {
     llm_settings: "LLM Settings",
     llm_proxy_url: "Proxy Base URL",
     llm_proxy_placeholder: "http://127.0.0.1:20000/uuid...",
-    run_chain: "Run Chain"
+    run_chain: "Execute"
 };
 
 if (typeof module !== 'undefined' && module.exports) {

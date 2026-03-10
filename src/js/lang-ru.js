@@ -274,7 +274,7 @@ var LANG_RU = {
     llm_settings: "Настройки LLM",
     llm_proxy_url: "Base URL прокси",
     llm_proxy_placeholder: "http://127.0.0.1:20000/uuid...",
-    run_chain: "Запустить"
+    run_chain: "Выполнить"
 };
 
 if (typeof module !== 'undefined' && module.exports) {
