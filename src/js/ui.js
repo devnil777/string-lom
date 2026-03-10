@@ -528,7 +528,7 @@ class BlockApp {
     }
 
     // --- CUSTOM DIALOGS ---
-    customDialog({ title, body, footer, onShow, isLarge }) {
+    customDialog({ title, body, footer, onShow, isLarge, onClose }) {
         const modal = document.getElementById('dialog-modal');
         if (!modal) return;
         const modalContainer = modal.querySelector('.modal');
@@ -555,12 +555,18 @@ class BlockApp {
             btn.textContent = btnDef.text;
             btn.onclick = () => {
                 const shouldClose = btnDef.onClick ? btnDef.onClick() !== false : true;
-                if (shouldClose) modal.classList.remove('active');
+                if (shouldClose) {
+                    modal.classList.remove('active');
+                    if (onClose) onClose();
+                }
             };
             footerEl.appendChild(btn);
         });
 
-        if (closeBtn) closeBtn.onclick = () => modal.classList.remove('active');
+        if (closeBtn) closeBtn.onclick = () => {
+            modal.classList.remove('active');
+            if (onClose) onClose();
+        };
         modal.classList.add('active');
         if (onShow) onShow();
     }
@@ -613,6 +619,7 @@ class BlockApp {
     }
 
     showLLMSettings() {
+        const originalSettings = JSON.parse(JSON.stringify(window.llmClient.settings));
         const settings = window.llmClient.settings;
         const body = document.createElement('div');
         body.innerHTML = `
@@ -643,20 +650,32 @@ class BlockApp {
             </div>
         `;
 
-        const setupUI = () => {
+        const setupUI = async () => {
             const provider = body.querySelector('#settings-llm-provider').value;
             body.querySelector('#llm-auth-section').style.display = provider === 'qwen_oauth' ? 'block' : 'none';
             body.querySelector('#llm-key-section').style.display = provider === 'qwen_oauth' ? 'none' : 'block';
 
             const modelSelect = body.querySelector('#settings-llm-model');
-            const models = window.llmClient.providers[provider] || [];
             const currentModel = modelSelect.value || settings.model;
+
+            modelSelect.innerHTML = `<option disabled selected>Loading models...</option>`;
+
+            // Temporary update settings to fetch correctly
+            window.llmClient.settings.provider = provider;
+            window.llmClient.settings.baseUrl = body.querySelector('#settings-llm-url').value.trim().replace(/\/$/, '');
+            window.llmClient.settings.apiKey = body.querySelector('#settings-llm-key').value.trim();
+
+            const models = await window.llmClient.fetchModels();
             modelSelect.innerHTML = models.map(m => `<option value="${m}" ${m === currentModel ? 'selected' : ''}>${m}</option>`).join('');
         };
+
+        const onAuthorized = () => setupUI();
+        window.addEventListener('llm-authorized', onAuthorized);
 
         setTimeout(() => {
             setupUI();
             body.querySelector('#settings-llm-provider').addEventListener('change', setupUI);
+            body.querySelector('#settings-llm-key').addEventListener('blur', setupUI);
             body.querySelector('#llm-authorize-btn').addEventListener('click', async () => {
                 const baseUrl = body.querySelector('#settings-llm-url').value.trim().replace(/\/$/, '');
                 if (!baseUrl) {
@@ -670,11 +689,19 @@ class BlockApp {
         const cancelText = i18n.t('cancel');
         const confirmText = i18n.t('confirm');
 
+        const cleanup = (restore = false) => {
+            window.removeEventListener('llm-authorized', onAuthorized);
+            if (restore) {
+                window.llmClient.settings = originalSettings;
+            }
+        };
+
         this.customDialog({
             title: i18n.t('llm_settings'),
             body: body,
+            onClose: () => cleanup(true),
             footer: [
-                { text: cancelText, type: 'secondary' },
+                { text: cancelText, type: 'secondary', onClick: () => cleanup(true) },
                 {
                     text: confirmText, type: 'primary', onClick: () => {
                         const newSettings = {
@@ -685,6 +712,7 @@ class BlockApp {
                         };
                         window.llmClient.saveSettings(newSettings);
                         this.showToast(i18n.t('saved'));
+                        cleanup();
                     }
                 }
             ]

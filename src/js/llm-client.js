@@ -160,7 +160,13 @@ class LLMClient {
                     }));
                     ui.showToast(i18n.t('tool_llm_auth_success'));
                     ui.closeDialog();
-                    if (blockId !== 'settings') ui.runChain();
+                    if (blockId !== 'settings') {
+                        ui.runChain();
+                    } else {
+                        // If we are in settings, we might want to refresh the model list
+                        const event = new CustomEvent('llm-authorized');
+                        window.dispatchEvent(event);
+                    }
                 } else if (data.error === 'authorization_pending' || data.error === 'slow_down') {
                     setTimeout(poll, 5000);
                 } else if (data.error) {
@@ -171,6 +177,37 @@ class LLMClient {
             }
         };
         setTimeout(poll, 5000);
+    }
+
+    async fetchModels() {
+        if (!this.settings.baseUrl) return this.providers[this.settings.provider];
+
+        let token = this.settings.apiKey;
+        let endpoint = this.settings.provider === 'deepseek' ? 'https://api.deepseek.com/models' : 'https://dashscope.aliyuncs.com/compatible-mode/v1/models';
+
+        if (this.settings.provider === 'qwen_oauth') {
+            const creds = JSON.parse(sessionStorage.getItem('qwen_oauth') || 'null');
+            if (!creds || !creds.access_token) return this.providers[this.settings.provider];
+            token = creds.access_token;
+            if (creds.resourceUrl) {
+                const ru = creds.resourceUrl.startsWith('http') ? creds.resourceUrl : `https://${creds.resourceUrl}`;
+                endpoint = (ru.endsWith('/v1') ? ru : `${ru}/v1`) + '/models';
+            }
+        }
+
+        try {
+            const proxyUrl = `${this.settings.baseUrl}/proxy?url=${encodeURIComponent(endpoint)}`;
+            const response = await fetch(proxyUrl, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch models');
+            const data = await response.json();
+            const models = (data.data || []).map(m => m.id).filter(Boolean).sort();
+            return models.length > 0 ? models : this.providers[this.settings.provider];
+        } catch (e) {
+            console.warn('Dynamic model fetch failed, using fallback:', e);
+            return this.providers[this.settings.provider];
+        }
     }
 }
 
