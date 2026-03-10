@@ -878,6 +878,10 @@ main {
     color: var(--danger);
 }
 
+.icon-btn.active {
+    color: var(--primary);
+}
+
 .block-content {
     padding: 10px;
 }

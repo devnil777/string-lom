@@ -743,7 +743,8 @@ class BlockApp {
     getChainConfig() {
         const blocks = this.chain.map(block => ({
             type: block.type,
-            params: { ...block.params }
+            params: { ...block.params },
+            manualRun: block.manualRun === true
         }));
         const sel = document.getElementById('final-delimiter-select');
         const custom = document.getElementById('final-custom-delimiter-input');
@@ -775,6 +776,7 @@ class BlockApp {
                 id: this.genId(),
                 type: blockData.type,
                 params: blockData.params || {},
+                manualRun: blockData.manualRun === true,
                 value: blockData.type === 'source' ? currentSourceValue : null
             };
         });
@@ -1198,7 +1200,7 @@ class BlockApp {
         if (!this.container) return;
         this.container.innerHTML = '';
 
-        const hasManual = this.chain.some(b => b.params && b.params.manualRun === true);
+        const hasManual = this.chain.some(b => b.manualRun === true);
         const runBtn = document.getElementById('run-manual-btn');
         if (runBtn) {
             runBtn.style.display = hasManual ? 'inline-block' : 'none';
@@ -1382,10 +1384,6 @@ class BlockApp {
 
         const toolDef = isSource ? { title: i18n.t('input_data'), icon: 'fas fa-file-alt' } : TOOLS.find(t => t.id === block.type);
 
-        if (toolDef && !isSource && !toolDef.params.some(p => p.id === 'manualRun')) {
-            toolDef.params.push({ id: 'manualRun', type: 'checkbox', label: 'tool_llm_manual_run', value: false });
-        }
-
         const wrapper = document.createElement('div');
         wrapper.className = 'block-wrapper';
         wrapper.id = `wrapper-${block.id}`;
@@ -1492,6 +1490,17 @@ class BlockApp {
             addBelowBtn.title = i18n.t('add_block_below');
             addBelowBtn.onclick = () => this.openToolModal(index + 1);
             actions.appendChild(addBelowBtn);
+
+            const manualBtn = document.createElement('button');
+            manualBtn.className = 'icon-btn' + (block.manualRun ? ' active' : '');
+            manualBtn.innerHTML = '<i class="fas fa-play-circle"></i>';
+            manualBtn.title = i18n.t('tool_llm_manual_run');
+            manualBtn.onclick = () => {
+                block.manualRun = !block.manualRun;
+                this.reRenderAll();
+                this.isModified = true;
+            };
+            actions.appendChild(manualBtn);
 
             const delBtn = document.createElement('button');
             delBtn.className = 'icon-btn delete';
@@ -1700,9 +1709,6 @@ class BlockApp {
                         inputField.checked = currentVal;
                         inputField.addEventListener('change', (e) => {
                             block.params[param.id] = e.target.checked;
-                            if (param.id === 'manualRun') {
-                                this.reRenderAll();
-                            }
                             this.runChain();
                             this.isModified = true;
                         });
@@ -1742,12 +1748,6 @@ class BlockApp {
             stats.id = `stats-${block.id}`;
             stats.style.marginTop = '10px';
 
-            const manualBtn = document.createElement('button');
-            manualBtn.className = 'btn-run-manual always-active';
-            manualBtn.style.display = block.params.manualRun ? 'block' : 'none';
-            manualBtn.innerHTML = `<i class="fas fa-play"></i> ${i18n.t('tool_llm_run_btn')}`;
-            manualBtn.onclick = () => this.runChain(block.id);
-            content.appendChild(manualBtn);
 
             content.appendChild(stats);
         }
@@ -1765,7 +1765,7 @@ class BlockApp {
         let currentLines = [];
         let globalDelimiter = '\n';
 
-        const manualBlocks = this.chain.filter(b => b.params && b.params.manualRun === true);
+        const manualBlocks = this.chain.filter(b => b.manualRun === true);
         const hasManual = manualBlocks.length > 0;
 
         let manualBlockReached = false;
@@ -1789,9 +1789,9 @@ class BlockApp {
                 const toolDef = TOOLS.find(t => t.id === block.type);
 
                 if (toolDef) {
-                    if (block.params.manualRun === true) manualBlockReached = true;
+                    if (block.manualRun === true) manualBlockReached = true;
 
-                    if (hasManual && manualBlockReached && !forceManual) {
+                    if (manualBlockReached && !forceManual) {
                         if (statsDiv) statsDiv.innerHTML = `<span class="badge" style="background:var(--gray-light); color:var(--dark)">${i18n.t('tool_llm_waiting_manual') || 'Waiting for manual run...'}</span>`;
                         currentLines = [];
                         break;

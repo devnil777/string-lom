@@ -1004,8 +1004,7 @@ const TOOLS = [
         params: [
             { id: 'systemPrompt', type: 'textarea', label: 'tool_llm_system_prompt', value: 'You are a helpful assistant.' },
             { id: 'promptTemplate', type: 'textarea', label: 'tool_llm_prompt_tpl', value: '{{ line }}' },
-            { id: 'batchSize', type: 'number', label: 'tool_llm_batch_size', value: 1 },
-            { id: 'manualRun', type: 'checkbox', label: 'tool_llm_manual_run', value: true }
+            { id: 'batchSize', type: 'number', label: 'tool_llm_batch_size', value: 1 }
         ],
         async: true,
         process: async (lines, params, blockId, ui) => {
