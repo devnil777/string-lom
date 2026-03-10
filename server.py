@@ -4,8 +4,11 @@ import uuid
 import socket
 import logging
 import asyncio
+import hashlib
+import base64
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
+from urllib.parse import urlencode
 
 import uvicorn
 import requests
@@ -53,10 +56,13 @@ class QwenProvider(BaseProvider):
         self.token_url = f"{self.oauth_base}/api/v1/oauth2/token"
         self.client_id = "f0304373b74a44d2b584a3fb70ca9e56"
         self.scope = "openid profile email model.completion"
+        self.pkce_store = {} # device_code -> verifier
 
     async def proxy_request(self, target_url: str, method: str, headers: Dict, body: Any) -> JSONResponse:
         logger.debug(f"Proxying {method} to {target_url}")
         filtered_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'origin', 'referer']}
+        filtered_headers['Host'] = target_url.split('//')[-1].split('/')[0]
+
         try:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
@@ -81,29 +87,61 @@ class QwenProvider(BaseProvider):
             logger.error(f"Proxy error: {str(e)}")
             return JSONResponse(content={"error": str(e)}, status_code=502)
 
-    async def get_device_code(self, challenge: str):
+    async def get_device_code(self, challenge: str, verifier: str):
         payload = {
             "client_id": self.client_id,
             "scope": self.scope,
             "code_challenge": challenge,
             "code_challenge_method": "S256"
         }
-        headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "vscode-qwen-copilot/0.2.0"}
-        r = requests.post(self.device_code_url, data=payload, headers=headers)
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "vscode-qwen-copilot/0.2.0"
+        }
+        r = requests.post(self.device_code_url, data=urlencode(payload), headers=headers)
         try:
-            return JSONResponse(content=r.json(), status_code=r.status_code)
+            data = r.json()
+            if r.status_code == 200 and 'device_code' in data:
+                self.pkce_store[data['device_code']] = verifier
+            return JSONResponse(content=data, status_code=r.status_code)
         except:
             return JSONResponse(content={"error": "Invalid response from provider", "text": r.text}, status_code=r.status_code)
 
-    async def poll_token(self, device_code: str, code_verifier: str):
+    async def poll_token(self, device_code: str, code_verifier: str = None):
+        verifier = code_verifier or self.pkce_store.get(device_code, "")
         payload = {
             "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
             "client_id": self.client_id,
             "device_code": device_code,
-            "code_verifier": code_verifier
+            "code_verifier": verifier
         }
-        headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "vscode-qwen-copilot/0.2.0"}
-        r = requests.post(self.token_url, data=payload, headers=headers)
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "vscode-qwen-copilot/0.2.0"
+        }
+        r = requests.post(self.token_url, data=urlencode(payload), headers=headers)
+        try:
+            data = r.json()
+            if 'access_token' in data:
+                self.pkce_store.pop(device_code, None)
+            return JSONResponse(content=data, status_code=r.status_code)
+        except:
+            return JSONResponse(content={"error": "Invalid response from provider", "text": r.text}, status_code=r.status_code)
+
+    async def refresh_token(self, refresh_token: str):
+        payload = {
+            "grant_type": "refresh_token",
+            "client_id": self.client_id,
+            "refresh_token": refresh_token
+        }
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "vscode-qwen-copilot/0.2.0"
+        }
+        r = requests.post(self.token_url, data=urlencode(payload), headers=headers)
         try:
             return JSONResponse(content=r.json(), status_code=r.status_code)
         except:
@@ -134,11 +172,16 @@ async def root():
 @app.post(f"/{API_UUID}/auth/device_code")
 async def device_code(body: Dict):
     challenge = body.get("challenge")
-    return await qwen_provider.get_device_code(challenge)
+    verifier = body.get("verifier")
+    return await qwen_provider.get_device_code(challenge, verifier)
 
 @app.post(f"/{API_UUID}/auth/poll")
 async def poll(body: Dict):
     return await qwen_provider.poll_token(body.get("device_code"), body.get("code_verifier"))
+
+@app.post(f"/{API_UUID}/auth/refresh")
+async def refresh(body: Dict):
+    return await qwen_provider.refresh_token(body.get("refresh_token"))
 
 @app.api_route(f"/{API_UUID}/proxy", methods=["GET", "POST", "PUT", "DELETE"])
 async def proxy(request: Request):

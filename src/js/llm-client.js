@@ -91,6 +91,21 @@ class LLMClient {
         };
     }
 
+    async generatePKCE() {
+        const array = new Uint8Array(32);
+        window.crypto.getRandomValues(array);
+        const verifier = btoa(String.fromCharCode.apply(null, array))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        const encoder = new TextEncoder();
+        const data = encoder.encode(verifier);
+        const hash = await window.crypto.subtle.digest('SHA-256', data);
+        const challenge = btoa(String.fromCharCode.apply(null, new Uint8Array(hash)))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        return { verifier, challenge };
+    }
+
     async startQwenOAuth(baseUrl, blockId, ui) {
         if (blockId !== 'settings') {
             const statsDiv = document.getElementById(`stats-${blockId}`);
@@ -98,11 +113,11 @@ class LLMClient {
         }
 
         try {
-            const challenge = 'random_challenge_string';
+            const { verifier, challenge } = await this.generatePKCE();
             const res = await fetch(`${baseUrl}/auth/device_code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ challenge })
+                body: JSON.stringify({ challenge, verifier })
             });
             const data = await res.json();
 
@@ -111,11 +126,11 @@ class LLMClient {
                     <div style="text-align:center">
                         <p>${i18n.t('tool_llm_oauth_code')}</p>
                         <h2 style="color:var(--primary); letter-spacing: 2px; margin: 15px 0;">${data.user_code}</h2>
-                        <a href="${data.verification_uri}" target="_blank" class="btn-sidebar-main" style="display:inline-block; text-decoration:none; margin-bottom:10px;">Open Activation Page</a>
+                        <a href="${data.verification_uri_complete || data.verification_uri || 'https://chat.qwen.ai/activate'}" target="_blank" class="btn-sidebar-main" style="display:inline-block; text-decoration:none; margin-bottom:10px;">Open Activation Page</a>
                     </div>
                 `, i18n.t('tool_llm_login_qwen'));
 
-                this.pollQwenToken(baseUrl, data.device_code, 'random_challenge_string', ui, blockId);
+                this.pollQwenToken(baseUrl, data.device_code, verifier, ui, blockId);
             }
         } catch (e) {
             console.error('OAuth start error:', e);
@@ -141,8 +156,10 @@ class LLMClient {
                     ui.showToast(i18n.t('tool_llm_auth_success'));
                     ui.closeDialog();
                     if (blockId !== 'settings') ui.runChain();
-                } else if (data.error === 'authorization_pending') {
+                } else if (data.error === 'authorization_pending' || data.error === 'slow_down') {
                     setTimeout(poll, 5000);
+                } else if (data.error) {
+                    console.error('OAuth poll error:', data.error);
                 }
             } catch (e) {
                 console.error('Polling error:', e);
