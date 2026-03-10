@@ -14,6 +14,7 @@ const TOOLS = [
         title: 'tool_regex_title',
         icon: 'fas fa-search',
         description: 'tool_regex_desc',
+        long_description: 'tool_regex_long_desc',
         params: [
             { id: 'pattern', type: 'text', label: 'tool_regex_pattern', placeholder: '\\d+', value: '\\d+' },
             { id: 'replacement', type: 'text', label: 'tool_regex_replacement', placeholder: '[$1]', value: '' },
@@ -68,6 +69,7 @@ const TOOLS = [
         title: 'tool_dedup_title',
         icon: 'fas fa-clone',
         description: 'tool_dedup_desc',
+        long_description: 'tool_deduplicate_long_desc',
         params: [
             { id: 'trim', type: 'checkbox', label: 'tool_dedup_trim', value: true }
         ],
@@ -92,6 +94,7 @@ const TOOLS = [
         title: 'tool_sort_title',
         icon: 'fas fa-sort-alpha-down',
         description: 'tool_sort_desc',
+        long_description: 'tool_sort_long_desc',
         params: [
             {
                 id: 'mode', type: 'select', label: 'tool_sort_mode', options: [
@@ -149,6 +152,7 @@ const TOOLS = [
         title: 'tool_reverse_title',
         icon: 'fas fa-arrows-alt-v',
         description: 'tool_reverse_desc',
+        long_description: 'tool_reverse_long_desc',
         params: [],
         process: (lines) => {
             return { result: [...lines].reverse(), stats: {} };
@@ -159,6 +163,7 @@ const TOOLS = [
         title: 'tool_compare_title',
         icon: 'fas fa-exchange-alt',
         description: 'tool_compare_desc',
+        long_description: 'tool_compare_long_desc',
         params: [
             { id: 'list2', type: 'textarea', label: 'tool_compare_list2', placeholder: 'tool_compare_placeholder', value: '' },
             { id: 'delimiter', type: 'delimiter', label: 'tool_compare_delimiter', value: '\\n' },
@@ -197,6 +202,7 @@ const TOOLS = [
         title: 'tool_duplicates_title',
         icon: 'fas fa-copy',
         description: 'tool_duplicates_desc',
+        long_description: 'tool_duplicates_long_desc',
         params: [
             { id: 'showCounts', type: 'checkbox', label: 'tool_duplicates_show_counts', value: true }
         ],
@@ -222,6 +228,7 @@ const TOOLS = [
         title: 'tool_filter_title',
         icon: 'fas fa-filter',
         description: 'tool_filter_desc',
+        long_description: 'tool_filter_long_desc',
         params: [
             { id: 'query', type: 'text', label: 'tool_filter_query', value: '' },
             { id: 'mode', type: 'select', label: 'tool_sort_mode', options: [{ v: 'contains', l: 'tool_filter_contains' }, { v: 'not_contains', l: 'tool_filter_not_contains' }, { v: 'starts', l: 'tool_filter_starts' }, { v: 'ends', l: 'tool_filter_ends' }], value: 'contains' }
@@ -246,6 +253,7 @@ const TOOLS = [
         title: 'tool_csv_title',
         icon: 'fas fa-file-csv',
         description: 'tool_csv_desc',
+        long_description: 'tool_csv_long_desc',
         params: [
             { id: 'delimiter', type: 'delimiter', label: 'tool_csv_delimiter', value: ';' },
             { id: 'template', type: 'text', label: 'tool_csv_template', value: '$1 - $2' },
@@ -275,6 +283,7 @@ const TOOLS = [
         title: 'tool_case_title',
         icon: 'fas fa-font',
         description: 'tool_case_desc',
+        long_description: 'tool_case_long_desc',
         params: [
             { id: 'mode', type: 'select', label: 'tool_sort_mode', options: [{ v: 'upper', l: 'tool_case_upper' }, { v: 'lower', l: 'tool_case_lower' }, { v: 'cap', l: 'tool_case_cap' }, { v: 'word', l: 'tool_case_word' }], value: 'lower' }
         ],
@@ -299,6 +308,7 @@ const TOOLS = [
         title: 'tool_wrapper_title',
         icon: 'fas fa-box',
         description: 'tool_wrapper_desc',
+        long_description: 'tool_wrapper_long_desc',
         params: [
             { id: 'prefix', type: 'text', label: 'tool_wrapper_prefix', value: '' },
             { id: 'suffix', type: 'text', label: 'tool_wrapper_suffix', value: '' }
@@ -313,6 +323,7 @@ const TOOLS = [
         title: 'tool_trim_title',
         icon: 'fas fa-cut',
         description: 'tool_trim_desc',
+        long_description: 'tool_trim_long_desc',
         params: [
             { id: 'mode', type: 'select', label: 'tool_sort_mode', options: [{ v: 'both', l: 'tool_trim_both' }, { v: 'left', l: 'tool_trim_left' }, { v: 'right', l: 'tool_trim_right' }], value: 'both' }
         ],
@@ -335,6 +346,7 @@ const TOOLS = [
         title: 'tool_ai_cleaner_title',
         icon: 'fas fa-magic',
         description: 'tool_ai_cleaner_desc',
+        long_description: 'tool_ai_cleaner_long_desc',
         params: [
             { id: 'replaceStr', type: 'text', label: 'tool_ai_cleaner_replace', value: '' }
         ],
@@ -355,6 +367,7 @@ const TOOLS = [
         title: 'tool_json_format_title',
         icon: 'fas fa-code',
         description: 'tool_json_format_desc',
+        long_description: 'tool_json_format_long_desc',
         params: [
             { id: 'indent', type: 'select', label: 'tool_json_format_indent', options: [{ v: '2', l: 'tool_json_format_2spaces' }, { v: '4', l: 'tool_json_format_4spaces' }, { v: 'tab', l: 'tool_json_format_tab' }, { v: '0', l: 'tool_json_format_minify' }], value: '2' },
             { id: 'joinDelim', type: 'select', label: 'tool_json_format_join', options: [{ v: '\\n', l: 'newline' }, { v: '', l: '(none)' }, { v: ' ', l: 'space' }], value: '\\n' }
@@ -388,6 +401,7 @@ const TOOLS = [
         title: 'tool_json_path_title',
         icon: 'fas fa-sitemap',
         description: 'tool_json_path_desc',
+        long_description: 'tool_json_path_long_desc',
         params: [
             { id: 'query', type: 'text', label: 'tool_json_path_query', value: '$.*' },
             { id: 'inputMode', type: 'select', label: 'tool_json_path_input_mode', options: [{ v: 'combined', l: 'tool_json_path_combined' }, { v: 'lines', l: 'tool_json_path_lines' }], value: 'combined' },
@@ -452,6 +466,7 @@ const TOOLS = [
         title: 'tool_join_title',
         icon: 'fas fa-link',
         description: 'tool_join_desc',
+        long_description: 'tool_join_long_desc',
         params: [
             { id: 'prefix', type: 'text', label: 'tool_join_prefix', value: '' },
             { id: 'delimiter', type: 'delimiter', label: 'tool_compare_delimiter', value: ', ' },
@@ -476,6 +491,7 @@ const TOOLS = [
         title: 'tool_split_title',
         icon: 'fas fa-columns',
         description: 'tool_split_desc',
+        long_description: 'tool_split_long_desc',
         params: [
             { id: 'delimiter', type: 'delimiter', label: 'tool_compare_delimiter', value: ',' }
         ],
@@ -490,6 +506,7 @@ const TOOLS = [
         title: 'tool_add_line_title',
         icon: 'fas fa-plus-square',
         description: 'tool_add_line_desc',
+        long_description: 'tool_add_line_long_desc',
         params: [
             { id: 'startLine', type: 'text', label: 'tool_add_line_start', value: '' },
             { id: 'betweenLines', type: 'text', label: 'tool_add_line_between', value: '' },
@@ -520,6 +537,7 @@ const TOOLS = [
         title: 'tool_template_title',
         icon: 'fas fa-terminal',
         description: 'tool_template_desc',
+        long_description: 'tool_template_long_desc',
         params: [
             { id: 'tpl', type: 'textarea', label: 'tool_template_tpl', value: '{% for line in lines %}\n- {{ line }}\n{% endfor %}' }
         ],
@@ -541,6 +559,7 @@ const TOOLS = [
         title: 'tool_js_function_title',
         icon: 'fas fa-code',
         description: 'tool_js_function_desc',
+        long_description: 'tool_js_function_long_desc',
         params: [
             { id: 'code', type: 'textarea', label: 'tool_js_function_code', value: 'return line.toUpperCase();' }
         ],
@@ -565,6 +584,7 @@ const TOOLS = [
         title: 'tool_shuffle_title',
         icon: 'fas fa-random',
         description: 'tool_shuffle_desc',
+        long_description: 'tool_shuffle_long_desc',
         params: [
             { id: 'seed', type: 'text', label: 'tool_shuffle_seed', value: '' }
         ],
@@ -597,6 +617,7 @@ const TOOLS = [
         title: 'tool_to_hex_title',
         icon: 'fas fa-hashtag',
         description: 'tool_to_hex_desc',
+        long_description: 'tool_to_hex_long_desc',
         params: [
             {
                 id: 'encoding', type: 'select', label: 'tool_to_hex_encoding', options: [
@@ -745,6 +766,7 @@ const TOOLS = [
         title: 'tool_from_hex_title',
         icon: 'fas fa-th-list',
         description: 'tool_from_hex_desc',
+        long_description: 'tool_from_hex_long_desc',
         params: [
             {
                 id: 'encoding', type: 'select', label: 'tool_from_hex_encoding', options: [
@@ -841,6 +863,7 @@ const TOOLS = [
         title: 'tool_encode_title',
         icon: 'fas fa-link',
         description: 'tool_encode_desc',
+        long_description: 'tool_encode_long_desc',
         params: [
             {
                 id: 'mode', type: 'select', label: 'tool_encode_mode', options: [
@@ -879,6 +902,7 @@ const TOOLS = [
         title: 'tool_hash_title',
         icon: 'fas fa-fingerprint',
         description: 'tool_hash_desc',
+        long_description: 'tool_hash_long_desc',
         params: [
             {
                 id: 'algorithm', type: 'select', label: 'tool_hash_algorithm', options: [
@@ -958,6 +982,7 @@ const TOOLS = [
         title: 'tool_debug_title',
         icon: 'fas fa-bug',
         description: 'tool_debug_desc',
+        long_description: 'tool_debug_view_long_desc',
         params: [
             { id: 'showSpaces', type: 'checkbox', label: 'tool_debug_spaces', value: true },
             { id: 'showTabs', type: 'checkbox', label: 'tool_debug_tabs', value: true },
