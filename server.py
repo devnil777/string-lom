@@ -6,6 +6,8 @@ import logging
 import asyncio
 import hashlib
 import base64
+import sys
+import argparse
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlencode
@@ -16,8 +18,13 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# --- Logging ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# --- Arguments & Logging ---
+parser = argparse.ArgumentParser()
+parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+args = parser.parse_args()
+
+log_level = logging.DEBUG if args.debug else logging.INFO
+logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 HOST = "127.0.0.1"
@@ -47,7 +54,7 @@ def load_or_create_config():
     config = {'port': port, 'uuid': api_uuid}
     try:
         with open(CONFIG_FILE, 'w') as f:
-            json.dump(config, f)
+            json.dump(config, f, indent=4)
     except Exception as e:
         logger.error(f"Error saving config: {e}")
     return port, api_uuid
@@ -79,7 +86,8 @@ class QwenProvider(BaseProvider):
 
     async def proxy_request(self, target_url: str, method: str, headers: Dict, body: Any) -> JSONResponse:
         logger.debug(f"Proxying {method} to {target_url}")
-        filtered_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'origin', 'referer', 'content-length']}
+
+        filtered_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'origin', 'referer', 'content-length', 'cookie']}
         filtered_headers['Host'] = target_url.split('//')[-1].split('/')[0]
 
         try:
@@ -95,9 +103,12 @@ class QwenProvider(BaseProvider):
                     allow_redirects=True
                 )
             )
+
             resp_headers = dict(response.headers)
-            for h in ['content-encoding', 'transfer-encoding', 'content-length', 'connection', 'access-control-allow-origin']:
-                resp_headers.pop(h, None)
+            # Remove all potentially conflicting headers
+            for h in list(resp_headers.keys()):
+                if h.lower() in ['content-encoding', 'transfer-encoding', 'content-length', 'connection', 'access-control-allow-origin', 'access-control-allow-credentials', 'access-control-allow-methods', 'access-control-allow-headers']:
+                    resp_headers.pop(h, None)
 
             try:
                 data = response.json()
@@ -154,19 +165,13 @@ class QwenProvider(BaseProvider):
 # --- FastAPI App ---
 app = FastAPI()
 
-# Important: add CORSMiddleware BEFORE other middlewares to handle preflight
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 qwen_provider = QwenProvider()
 
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
+    if args.debug:
+        logger.debug(f"Received request: {request.method} {request.url}")
+
     # Allow OPTIONS for CORS preflight
     if request.method == "OPTIONS":
         return await call_next(request)
@@ -180,6 +185,15 @@ async def security_middleware(request: Request, call_next):
         return JSONResponse(content={"error": "Unauthorized: Invalid UUID"}, status_code=401)
 
     return await call_next(request)
+
+# Important: add CORSMiddleware after other middlewares to ensure it's processed properly
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
@@ -201,14 +215,7 @@ async def proxy(request: Request):
     if not target_url: raise HTTPException(status_code=400, detail="Missing url parameter")
     method = request.method
     headers = dict(request.headers)
-
-    body = None
-    if method in ["POST", "PUT"]:
-        try:
-            body = await request.json()
-        except:
-            body = None
-
+    body = await request.json() if method in ["POST", "PUT"] else None
     return await qwen_provider.proxy_request(target_url, method, headers, body)
 
 if __name__ == "__main__":
