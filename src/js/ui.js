@@ -17,6 +17,8 @@ class BlockApp {
         this.theme = 'dark'; // default
         this.isModified = false;
 
+        this.isRunning = false;
+
         // Initialize I18n
         this.updateUIStrings();
 
@@ -48,10 +50,17 @@ class BlockApp {
         if (saveChainBtn) saveChainBtn.onclick = () => this.saveCurrentChain();
         const shareChainBtn = document.getElementById('share-chain-btn');
         if (shareChainBtn) shareChainBtn.onclick = () => this.shareChain();
+
+        const runManualBtn = document.getElementById('run-manual-btn');
+        if (runManualBtn) runManualBtn.onclick = () => this.runChain(null, true);
+
         const copyChainBtn = document.getElementById('copy-chain-btn');
         if (copyChainBtn) copyChainBtn.onclick = () => this.exportChain();
         const themeBtn = document.getElementById('theme-toggle-btn');
         if (themeBtn) themeBtn.onclick = () => this.toggleTheme();
+
+        const llmSettingsBtn = document.getElementById('llm-settings-btn');
+        if (llmSettingsBtn) llmSettingsBtn.onclick = () => this.showLLMSettings();
 
         const langSelect = document.getElementById('lang-select');
         if (langSelect) {
@@ -333,6 +342,7 @@ class BlockApp {
         });
     }
 
+
     updateUIStrings() {
         i18n.translatePage();
         this.updateWorkspaceTitle();
@@ -591,6 +601,56 @@ class BlockApp {
             footer: [
                 { text: cancelText, type: 'secondary' },
                 { text: okText, type: 'primary', onClick: () => onConfirm(input.value) }
+            ]
+        });
+    }
+
+    showLLMSettings() {
+        const settings = window.llmClient.settings;
+        const body = document.createElement('div');
+        body.innerHTML = `
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="display:block; margin-bottom: 5px;">${i18n.t('llm_proxy_url')}</label>
+                <input type="text" id="settings-llm-url" value="${settings.baseUrl}" placeholder="${i18n.t('llm_proxy_placeholder')}" style="width:100%; box-sizing:border-box;">
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_provider')}</label>
+                <select id="settings-llm-provider" style="width:100%; box-sizing:border-box;">
+                    <option value="qwen_oauth" ${settings.provider === 'qwen_oauth' ? 'selected' : ''}>Qwen OAuth (Free)</option>
+                    <option value="qwen_key" ${settings.provider === 'qwen_key' ? 'selected' : ''}>Qwen API Key</option>
+                    <option value="deepseek" ${settings.provider === 'deepseek' ? 'selected' : ''}>DeepSeek API Key</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_model')}</label>
+                <input type="text" id="settings-llm-model" value="${settings.model}" style="width:100%; box-sizing:border-box;">
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_api_key')}</label>
+                <input type="password" id="settings-llm-key" value="${settings.apiKey}" style="width:100%; box-sizing:border-box;">
+            </div>
+        `;
+
+        const cancelText = i18n.t('cancel');
+        const confirmText = i18n.t('confirm');
+
+        this.customDialog({
+            title: i18n.t('llm_settings'),
+            body: body,
+            footer: [
+                { text: cancelText, type: 'secondary' },
+                {
+                    text: confirmText, type: 'primary', onClick: () => {
+                        const newSettings = {
+                            baseUrl: document.getElementById('settings-llm-url').value.trim().replace(/\/$/, ''),
+                            provider: document.getElementById('settings-llm-provider').value,
+                            model: document.getElementById('settings-llm-model').value.trim(),
+                            apiKey: document.getElementById('settings-llm-key').value.trim()
+                        };
+                        window.llmClient.saveSettings(newSettings);
+                        this.showToast(i18n.t('saved'));
+                    }
+                }
             ]
         });
     }
@@ -1115,6 +1175,12 @@ class BlockApp {
         if (!this.container) return;
         this.container.innerHTML = '';
 
+        const hasManual = this.chain.some(b => b.params && b.params.manualRun === true);
+        const runBtn = document.getElementById('run-manual-btn');
+        if (runBtn) {
+            runBtn.style.display = hasManual ? 'inline-block' : 'none';
+        }
+
         if (this.chain.length > 0) {
             this.renderBlock(this.chain[0], 0, this.container);
         }
@@ -1290,7 +1356,12 @@ class BlockApp {
 
     renderBlock(block, index, parentElement) {
         const isSource = block.type === 'source';
+
         const toolDef = isSource ? { title: i18n.t('input_data'), icon: 'fas fa-file-alt' } : TOOLS.find(t => t.id === block.type);
+
+        if (toolDef && !isSource && !toolDef.params.some(p => p.id === 'manualRun')) {
+            toolDef.params.push({ id: 'manualRun', type: 'checkbox', label: 'tool_llm_manual_run', value: false });
+        }
 
         const wrapper = document.createElement('div');
         wrapper.className = 'block-wrapper';
@@ -1606,6 +1677,9 @@ class BlockApp {
                         inputField.checked = currentVal;
                         inputField.addEventListener('change', (e) => {
                             block.params[param.id] = e.target.checked;
+                            if (param.id === 'manualRun') {
+                                this.reRenderAll();
+                            }
                             this.runChain();
                             this.isModified = true;
                         });
@@ -1645,6 +1719,13 @@ class BlockApp {
             stats.id = `stats-${block.id}`;
             stats.style.marginTop = '10px';
 
+            const manualBtn = document.createElement('button');
+            manualBtn.className = 'btn-run-manual always-active';
+            manualBtn.style.display = block.params.manualRun ? 'block' : 'none';
+            manualBtn.innerHTML = `<i class="fas fa-play"></i> ${i18n.t('tool_llm_run_btn')}`;
+            manualBtn.onclick = () => this.runChain(block.id);
+            content.appendChild(manualBtn);
+
             content.appendChild(stats);
         }
 
@@ -1655,11 +1736,21 @@ class BlockApp {
         if (parentElement) parentElement.appendChild(wrapper);
     }
 
-    runChain() {
+    async runChain(triggerManualId = null, forceManual = false) {
+        if (this.isRunning) return;
+
         let currentLines = [];
         let globalDelimiter = '\n';
 
-        this.chain.forEach((block, index) => {
+        const manualBlocks = this.chain.filter(b => b.params && b.params.manualRun === true);
+        const hasManual = manualBlocks.length > 0;
+
+        let manualBlockReached = false;
+
+        for (let i = 0; i < this.chain.length; i++) {
+            const block = this.chain[i];
+            const statsDiv = document.getElementById(`stats-${block.id}`);
+
             if (block.type === 'source') {
                 const delimParam = block.params.delimiter;
                 let innerDelim = '\\n';
@@ -1673,49 +1764,55 @@ class BlockApp {
                 currentLines = text ? text.split(globalDelimiter) : [];
             } else {
                 const toolDef = TOOLS.find(t => t.id === block.type);
-                const statsDiv = document.getElementById(`stats-${block.id}`);
 
                 if (toolDef) {
-                    const res = toolDef.process(currentLines, block.params);
+                    if (block.params.manualRun === true) manualBlockReached = true;
 
-                    if (res.error) {
-                        if (statsDiv) {
-                            statsDiv.innerHTML = `<span style="color:var(--danger); font-size: 0.85rem;">${res.result}</span>`;
-                        }
+                    if (hasManual && manualBlockReached && !forceManual) {
+                        if (statsDiv) statsDiv.innerHTML = `<span class="badge" style="background:var(--gray-light); color:var(--dark)">${i18n.t('tool_llm_waiting_manual') || 'Waiting for manual run...'}</span>`;
                         currentLines = [];
-                    } else {
-                        currentLines = res.result;
+                        break;
+                    }
 
-                        if (statsDiv) {
-                            statsDiv.innerHTML = '';
-                            if (res.stats) {
-                                if (res.stats._html) {
-                                    const debugPre = document.createElement('div');
-                                    debugPre.className = 'debug-preview';
-                                    debugPre.innerHTML = res.stats._html;
-                                    statsDiv.appendChild(debugPre);
-                                }
+                    if (toolDef.async) {
+                        this.isRunning = true;
+                        this.lockUI(true);
+                        if (statsDiv) statsDiv.innerHTML = `<div class="typing"><span></span><span></span><span></span></div>`;
 
-                                const badgeEntries = Object.entries(res.stats).filter(([k]) => !k.startsWith('_'));
-                                if (badgeEntries.length > 0) {
-                                    const badges = document.createElement('div');
-                                    badges.className = 'stats-badges';
-                                    if (res.stats._html) badges.style.marginTop = '8px';
-
-                                    badgeEntries.forEach(([k, v]) => {
-                                        const badge = document.createElement('span');
-                                        badge.className = 'badge';
-                                        badge.textContent = `${k}: ${v}`;
-                                        badges.appendChild(badge);
-                                    });
-                                    statsDiv.appendChild(badges);
-                                }
+                        try {
+                            const res = await toolDef.process(currentLines, block.params, block.id, this);
+                            if (res.error) {
+                                if (statsDiv) statsDiv.innerHTML = `<span style="color:var(--danger); font-size: 0.85rem;">${res.result}</span>`;
+                                currentLines = [];
+                                this.isRunning = false;
+                                this.lockUI(false);
+                                break;
                             }
+                            currentLines = res.result;
+                            this.renderStats(block, res.stats);
+                        } catch (e) {
+                            if (statsDiv) statsDiv.innerHTML = `<span style="color:var(--danger); font-size: 0.85rem;">${e.message}</span>`;
+                            currentLines = [];
+                            this.isRunning = false;
+                            this.lockUI(false);
+                            break;
                         }
+
+                        this.isRunning = false;
+                        this.lockUI(false);
+                    } else {
+                        const res = toolDef.process(currentLines, block.params);
+                        if (res.error) {
+                            if (statsDiv) statsDiv.innerHTML = `<span style="color:var(--danger); font-size: 0.85rem;">${res.result}</span>`;
+                            currentLines = [];
+                            break;
+                        }
+                        currentLines = res.result;
+                        this.renderStats(block, res.stats);
                     }
                 }
             }
-        });
+        }
 
         const fDelimSelect = document.getElementById('final-delimiter-select');
         if (!fDelimSelect) return;
@@ -1748,6 +1845,75 @@ class BlockApp {
             }
         }
     }
+
+    renderStats(block, stats) {
+        const statsDiv = document.getElementById(`stats-${block.id}`);
+        if (!statsDiv) return;
+        statsDiv.innerHTML = '';
+        if (stats) {
+            if (stats._html) {
+                const debugPre = document.createElement('div');
+                debugPre.className = 'debug-preview';
+                debugPre.innerHTML = stats._html;
+                statsDiv.appendChild(debugPre);
+            }
+
+            const badgeEntries = Object.entries(stats).filter(([k]) => !k.startsWith('_'));
+            if (badgeEntries.length > 0) {
+                const badges = document.createElement('div');
+                badges.className = 'stats-badges';
+                if (stats._html) badges.style.marginTop = '8px';
+
+                badgeEntries.forEach(([k, v]) => {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge';
+                    badge.textContent = `${k}: ${v}`;
+                    badges.appendChild(badge);
+                });
+                statsDiv.appendChild(badges);
+            }
+        }
+    }
+
+    showToast(message) {
+        let toast = document.getElementById('undo-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'undo-toast';
+            toast.className = 'undo-toast';
+            document.body.appendChild(toast);
+        }
+        toast.innerHTML = `<div class="undo-content"><span>${message}</span></div>`;
+        toast.classList.remove('active');
+        void toast.offsetWidth;
+        toast.classList.add('active');
+        setTimeout(() => toast.classList.remove('active'), 3000);
+    }
+
+    closeDialog() {
+        const modal = document.getElementById('dialog-modal');
+        if (modal) modal.classList.remove('active');
+    }
+
+    lockUI(locked) {
+        document.body.classList.toggle('ui-locked', locked);
+        const inputs = document.querySelectorAll('input, select, textarea, button:not(.always-active)');
+        inputs.forEach(el => {
+            if (locked) {
+                if (!el.hasAttribute('disabled')) {
+                    el.setAttribute('data-was-disabled', 'false');
+                    el.disabled = true;
+                } else {
+                    el.setAttribute('data-was-disabled', 'true');
+                }
+            } else {
+                if (el.getAttribute('data-was-disabled') === 'false') {
+                    el.disabled = false;
+                }
+            }
+        });
+    }
+
 
     handleFileUpload(file, block) {
         if (!file) return;

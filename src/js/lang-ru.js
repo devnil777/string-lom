@@ -80,6 +80,7 @@ var LANG_RU = {
     cat_text_transform: "Трансформация текста",
     cat_formats: "Работа с форматами",
     cat_assembly_templates: "Сборка и шаблоны",
+    cat_ai: "AI и LLM",
 
     // Tools
     tool_regex_title: "Поиск и замена (Regex)",
@@ -242,7 +243,38 @@ var LANG_RU = {
     tool_debug_desc: "Визуализирует невидимые символы (пробелы, табы, переносы)",
     tool_debug_spaces: "Показывать пробелы (·)",
     tool_debug_tabs: "Показывать табы (→)",
-    tool_debug_numbers: "Номера строк"
+    tool_debug_numbers: "Номера строк",
+
+    // LLM Tool
+    tool_llm_title: "AI Ассистент (LLM)",
+    tool_llm_desc: "Обработка текста с помощью больших языковых моделей (Qwen, DeepSeek и др.)",
+    tool_llm_provider: "Провайдер",
+    tool_llm_model: "Модель",
+    tool_llm_api_key: "API Ключ",
+    tool_llm_system_prompt: "Системный промпт",
+    tool_llm_prompt_tpl: "Шаблон пользовательского промпта",
+    tool_llm_batch_processing: "Пакетная обработка",
+    tool_llm_batch_size: "Размер пакета (строк)",
+    tool_llm_manual_run: "Ручной запуск",
+    tool_llm_run_btn: "Запустить AI обработку",
+    tool_llm_running: "AI думает...",
+    tool_llm_tokens: "Токены:",
+    tool_llm_waiting_manual: "Ожидание ручного запуска...",
+    tool_llm_auth_required: "Требуется авторизация",
+    tool_llm_login_qwen: "Войти через Qwen",
+    tool_llm_oauth_code: "Введите этот код на странице chat.qwen.ai/activate:",
+    tool_llm_waiting_auth: "Ожидание авторизации...",
+    tool_llm_auth_success: "Авторизация прошла успешно!",
+    tool_llm_stats_tokens: "Использовано токенов: ",
+    tool_llm_stats_prompt: "Промпт: ",
+    tool_llm_stats_completion: "Ответ: ",
+    tool_llm_error: "Ошибка LLM: ",
+    tool_llm_locked: "Выполнение в процессе. Конвейер заблокирован.",
+
+    llm_settings: "Настройки LLM",
+    llm_proxy_url: "Base URL прокси",
+    llm_proxy_placeholder: "http://127.0.0.1:20000/uuid...",
+    run_chain: "Запустить"
 };
 
 if (typeof module !== 'undefined' && module.exports) {

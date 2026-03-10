@@ -25,6 +25,7 @@
     <script src="js/lang-en.js"></script>
     <script src="js/lang-ru.js"></script>
     <script src="js/i18n.js"></script>
+    <script src="js/llm-client.js"></script>
     <script src="js/tools.js"></script>
     <script src="js/categories.js"></script>
 </head>
@@ -71,6 +72,12 @@
                                 </div>
                             </div>
                             <div class="menu-divider"></div>
+                            <div class="menu-divider"></div>
+                            <div class="menu-item" id="llm-settings-btn">
+                                <i class="fas fa-robot"></i>
+                                <span data-i18n="llm_settings">Настройки LLM</span>
+                            </div>
+                            <div class="menu-divider"></div>
                             <div class="menu-item version-item">
                                 <i class="fas fa-info-circle"></i>
                                 <span><span data-i18n="version">Версия:</span> <small><!-- VERSION_PLACEHOLDER --></small></span>
@@ -114,6 +121,9 @@
                         <button class="btn-toolbar" id="copy-chain-btn" tabindex="-1"
                             title="Экспортировать настройки цепочки (Alt + E)" data-i18n-title="export_title"><i class="fas fa-file-export"></i>
                             <span data-i18n="export">Экспортировать</span></button>
+                        <button class="btn-toolbar primary" id="run-manual-btn" style="display: none;">
+                            <i class="fas fa-play"></i> <span data-i18n="run_chain">Запустить</span>
+                        </button>
                     </div>
                 </div>
 

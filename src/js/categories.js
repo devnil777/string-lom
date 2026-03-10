@@ -22,5 +22,9 @@ const TOOL_CATEGORIES = [
     {
         title: 'cat_assembly_templates',
         tools: ['join', 'add_line', 'template', 'js_function', 'debug_view']
+    },
+    {
+        title: 'cat_ai',
+        tools: ['llm']
     }
 ];

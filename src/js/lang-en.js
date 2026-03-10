@@ -80,6 +80,7 @@ var LANG_EN = {
     cat_text_transform: "Text Transformation",
     cat_formats: "Work with Formats",
     cat_assembly_templates: "Assembly and Templates",
+    cat_ai: "AI & LLM",
 
     // Tools
     tool_regex_title: "Search and Replace (Regex)",
@@ -242,7 +243,38 @@ var LANG_EN = {
     tool_debug_desc: "Visualizes invisible characters (spaces, tabs, breaks)",
     tool_debug_spaces: "Show spaces (·)",
     tool_debug_tabs: "Show tabs (→)",
-    tool_debug_numbers: "Line numbers"
+    tool_debug_numbers: "Line numbers",
+
+    // LLM Tool
+    tool_llm_title: "AI Assistant (LLM)",
+    tool_llm_desc: "Processing text using Large Language Models (Qwen, DeepSeek, etc.)",
+    tool_llm_provider: "Provider",
+    tool_llm_model: "Model",
+    tool_llm_api_key: "API Key",
+    tool_llm_system_prompt: "System Prompt",
+    tool_llm_prompt_tpl: "User Prompt Template",
+    tool_llm_batch_processing: "Batch processing",
+    tool_llm_batch_size: "Batch size (lines)",
+    tool_llm_manual_run: "Manual Execution",
+    tool_llm_run_btn: "Run AI Processing",
+    tool_llm_running: "AI is thinking...",
+    tool_llm_tokens: "Tokens:",
+    tool_llm_waiting_manual: "Waiting for manual run...",
+    tool_llm_auth_required: "Authorization required",
+    tool_llm_login_qwen: "Login with Qwen",
+    tool_llm_oauth_code: "Enter this code at chat.qwen.ai/activate:",
+    tool_llm_waiting_auth: "Waiting for authorization...",
+    tool_llm_auth_success: "Successfully authorized!",
+    tool_llm_stats_tokens: "Tokens used: ",
+    tool_llm_stats_prompt: "Prompt: ",
+    tool_llm_stats_completion: "Completion: ",
+    tool_llm_error: "LLM Error: ",
+    tool_llm_locked: "Execution in progress. Pipeline is locked.",
+
+    llm_settings: "LLM Settings",
+    llm_proxy_url: "Proxy Base URL",
+    llm_proxy_placeholder: "http://127.0.0.1:20000/uuid...",
+    run_chain: "Run Chain"
 };
 
 if (typeof module !== 'undefined' && module.exports) {
