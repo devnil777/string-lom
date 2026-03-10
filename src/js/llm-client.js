@@ -1,6 +1,11 @@
 class LLMClient {
     constructor() {
         this.settings = this.loadSettings();
+        this.providers = {
+            qwen_oauth: ['qwen3-coder-plus', 'qwen3-max', 'qwen-plus-latest', 'qwen3-coder-flash'],
+            qwen_key: ['qwen3-coder-plus', 'qwen3-max', 'qwen-plus-latest', 'qwen3-coder-flash'],
+            deepseek: ['deepseek-chat', 'deepseek-reasoner']
+        };
     }
 
     loadSettings() {

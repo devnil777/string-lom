@@ -192,6 +192,13 @@ class BlockApp {
 
         // Global Key Listeners for Modals & Shortcuts
         window.addEventListener('keydown', (e) => {
+            if (e.key === 'F9') {
+                const runBtn = document.getElementById('run-manual-btn');
+                if (runBtn && runBtn.style.display !== 'none' && !this.isRunning) {
+                    e.preventDefault();
+                    this.runChain(null, true);
+                }
+            }
             // --- FOCUS TRAP LOGIC ---
             if (e.key === 'Tab') {
                 const toolModal = document.getElementById('tool-modal');
@@ -628,7 +635,7 @@ class BlockApp {
             </div>
             <div class="form-group" style="margin-bottom: 15px;">
                 <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_model')}</label>
-                <input type="text" id="settings-llm-model" value="${settings.model}" style="width:100%; box-sizing:border-box;">
+                <select id="settings-llm-model" style="width:100%; box-sizing:border-box;"></select>
             </div>
             <div class="form-group" id="llm-key-section" style="margin-bottom: 15px; display: ${settings.provider === 'qwen_oauth' ? 'none' : 'block'};">
                 <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_api_key')}</label>
@@ -640,9 +647,15 @@ class BlockApp {
             const provider = body.querySelector('#settings-llm-provider').value;
             body.querySelector('#llm-auth-section').style.display = provider === 'qwen_oauth' ? 'block' : 'none';
             body.querySelector('#llm-key-section').style.display = provider === 'qwen_oauth' ? 'none' : 'block';
+
+            const modelSelect = body.querySelector('#settings-llm-model');
+            const models = window.llmClient.providers[provider] || [];
+            const currentModel = modelSelect.value || settings.model;
+            modelSelect.innerHTML = models.map(m => `<option value="${m}" ${m === currentModel ? 'selected' : ''}>${m}</option>`).join('');
         };
 
         setTimeout(() => {
+            setupUI();
             body.querySelector('#settings-llm-provider').addEventListener('change', setupUI);
             body.querySelector('#llm-authorize-btn').addEventListener('click', async () => {
                 const baseUrl = body.querySelector('#settings-llm-url').value.trim().replace(/\/$/, '');
@@ -667,7 +680,7 @@ class BlockApp {
                         const newSettings = {
                             baseUrl: document.getElementById('settings-llm-url').value.trim().replace(/\/$/, ''),
                             provider: document.getElementById('settings-llm-provider').value,
-                            model: document.getElementById('settings-llm-model').value.trim(),
+                            model: document.getElementById('settings-llm-model').value,
                             apiKey: document.getElementById('settings-llm-key').value.trim()
                         };
                         window.llmClient.saveSettings(newSettings);

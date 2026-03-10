@@ -637,6 +637,21 @@ body {
     color: var(--dark);
 }
 
+.btn-toolbar.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-toolbar.execute {
+    background: var(--success) !important;
+    color: white !important;
+    font-weight: 700;
+}
+
+.btn-toolbar.execute:hover {
+    filter: brightness(1.1);
+}
+
 /* Removed red hover for reset since it's now Create */
 
 .app-footer {
