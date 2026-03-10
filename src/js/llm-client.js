@@ -19,7 +19,7 @@ class LLMClient {
     }
 
     async process(lines, params, blockId, ui) {
-        if (!this.settings.baseUrl && this.settings.provider === 'qwen_oauth') {
+        if (!this.settings.baseUrl) {
             throw new Error('LLM Proxy Base URL is not configured in settings.');
         }
 
@@ -29,8 +29,7 @@ class LLMClient {
         if (this.settings.provider === 'qwen_oauth') {
             const creds = JSON.parse(sessionStorage.getItem('qwen_oauth') || 'null');
             if (!creds || !creds.access_token) {
-                await this.startQwenOAuth(this.settings.baseUrl, blockId, ui);
-                return { result: [i18n.t('tool_llm_waiting_auth')], error: true };
+                throw new Error(i18n.t('tool_llm_auth_required'));
             }
             token = creds.access_token;
             if (creds.resourceUrl) {
@@ -93,11 +92,13 @@ class LLMClient {
     }
 
     async startQwenOAuth(baseUrl, blockId, ui) {
-        const statsDiv = document.getElementById(`stats-${blockId}`);
-        if (statsDiv) statsDiv.innerHTML = `<div class="badge on2">${i18n.t('tool_llm_waiting_auth')}</div>`;
+        if (blockId !== 'settings') {
+            const statsDiv = document.getElementById(`stats-${blockId}`);
+            if (statsDiv) statsDiv.innerHTML = `<div class="badge on2">${i18n.t('tool_llm_waiting_auth')}</div>`;
+        }
 
         try {
-            const challenge = 'random_challenge_string'; // Simplified for now
+            const challenge = 'random_challenge_string';
             const res = await fetch(`${baseUrl}/auth/device_code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -114,15 +115,14 @@ class LLMClient {
                     </div>
                 `, i18n.t('tool_llm_login_qwen'));
 
-                // Start polling
-                this.pollQwenToken(baseUrl, data.device_code, 'random_challenge_string', ui);
+                this.pollQwenToken(baseUrl, data.device_code, 'random_challenge_string', ui, blockId);
             }
         } catch (e) {
             console.error('OAuth start error:', e);
         }
     }
 
-    async pollQwenToken(baseUrl, deviceCode, codeVerifier, ui) {
+    async pollQwenToken(baseUrl, deviceCode, codeVerifier, ui, blockId) {
         const poll = async () => {
             try {
                 const res = await fetch(`${baseUrl}/auth/poll`, {
@@ -133,10 +133,14 @@ class LLMClient {
                 const data = await res.json();
 
                 if (data.access_token) {
-                    sessionStorage.setItem('qwen_oauth', JSON.stringify(data));
+                    sessionStorage.setItem('qwen_oauth', JSON.stringify({
+                        access_token: data.access_token,
+                        refresh_token: data.refresh_token,
+                        resourceUrl: data.resource_url
+                    }));
                     ui.showToast(i18n.t('tool_llm_auth_success'));
                     ui.closeDialog();
-                    ui.runChain(); // Re-run
+                    if (blockId !== 'settings') ui.runChain();
                 } else if (data.error === 'authorization_pending') {
                     setTimeout(poll, 5000);
                 }

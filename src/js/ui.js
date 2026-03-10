@@ -621,15 +621,38 @@ class BlockApp {
                     <option value="deepseek" ${settings.provider === 'deepseek' ? 'selected' : ''}>DeepSeek API Key</option>
                 </select>
             </div>
+            <div id="llm-auth-section" style="margin-bottom: 15px; display: ${settings.provider === 'qwen_oauth' ? 'block' : 'none'};">
+                <button class="btn-toolbar primary" id="llm-authorize-btn" style="width: 100%; justify-content: center;">
+                    <i class="fas fa-key"></i> ${i18n.t('tool_llm_login_qwen')}
+                </button>
+            </div>
             <div class="form-group" style="margin-bottom: 15px;">
                 <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_model')}</label>
                 <input type="text" id="settings-llm-model" value="${settings.model}" style="width:100%; box-sizing:border-box;">
             </div>
-            <div class="form-group" style="margin-bottom: 15px;">
+            <div class="form-group" id="llm-key-section" style="margin-bottom: 15px; display: ${settings.provider === 'qwen_oauth' ? 'none' : 'block'};">
                 <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_api_key')}</label>
                 <input type="password" id="settings-llm-key" value="${settings.apiKey}" style="width:100%; box-sizing:border-box;">
             </div>
         `;
+
+        const setupUI = () => {
+            const provider = body.querySelector('#settings-llm-provider').value;
+            body.querySelector('#llm-auth-section').style.display = provider === 'qwen_oauth' ? 'block' : 'none';
+            body.querySelector('#llm-key-section').style.display = provider === 'qwen_oauth' ? 'none' : 'block';
+        };
+
+        setTimeout(() => {
+            body.querySelector('#settings-llm-provider').addEventListener('change', setupUI);
+            body.querySelector('#llm-authorize-btn').addEventListener('click', async () => {
+                const baseUrl = body.querySelector('#settings-llm-url').value.trim().replace(/\/$/, '');
+                if (!baseUrl) {
+                    this.alertAction(i18n.t('llm_proxy_url'));
+                    return;
+                }
+                await window.llmClient.startQwenOAuth(baseUrl, 'settings', this);
+            });
+        }, 0);
 
         const cancelText = i18n.t('cancel');
         const confirmText = i18n.t('confirm');
