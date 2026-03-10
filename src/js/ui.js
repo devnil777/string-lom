@@ -639,6 +639,7 @@ class BlockApp {
                 <button class="btn-toolbar primary" id="llm-authorize-btn" style="width: 100%; justify-content: center;">
                     <i class="fas fa-key"></i> ${i18n.t('tool_llm_login_qwen')}
                 </button>
+                <div id="llm-token-status" style="margin-top: 10px; font-size: 12px; color: green;"></div>
             </div>
             <div class="form-group" style="margin-bottom: 15px;">
                 <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_model')}</label>
@@ -654,6 +655,16 @@ class BlockApp {
             const provider = body.querySelector('#settings-llm-provider').value;
             body.querySelector('#llm-auth-section').style.display = provider === 'qwen_oauth' ? 'block' : 'none';
             body.querySelector('#llm-key-section').style.display = provider === 'qwen_oauth' ? 'none' : 'block';
+
+            // Update token status
+            const tokenStatus = body.querySelector('#llm-token-status');
+            const creds = JSON.parse(localStorage.getItem('qwen_oauth') || 'null');
+            if (creds && creds.access_token) {
+                const tokenSnippet = creds.access_token.substring(0, 20) + '...';
+                tokenStatus.textContent = `Authorized: ${tokenSnippet}`;
+            } else {
+                tokenStatus.textContent = '';
+            }
 
             const modelSelect = body.querySelector('#settings-llm-model');
             const currentModel = modelSelect.value || settings.model;
@@ -2107,3 +2118,225 @@ window.onclick = function (event) {
         app.closeToolModal();
     }
 }
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const aiBtn = document.getElementById('ai-assistant-btn');
+    const aiModal = document.getElementById('ai-modal');
+    const aiCloseBtn = document.getElementById('close-ai-modal-btn');
+    const aiExecuteBtn = document.getElementById('ai-execute-btn');
+    const aiCancelBtn = document.getElementById('ai-cancel-changes-btn');       
+    const aiInput = document.getElementById('ai-prompt-input');
+    const aiStatusContainer = document.getElementById('ai-status-container');   
+    const aiStatusText = document.getElementById('ai-status-text');
+    const aiStatusDetail = document.getElementById('ai-status-detail');
+
+    let originalChain = null;
+
+    if (aiBtn) {
+        aiBtn.addEventListener('click', () => {
+            aiModal.classList.add('active');
+            aiInput.value = '';
+            aiStatusContainer.style.display = 'none';
+            aiCancelBtn.style.display = 'none';
+            aiExecuteBtn.disabled = false;
+            // Save current chain in case user wants to cancel
+            if (window.app) {
+                originalChain = window.app.getChainConfig();
+            }
+        });
+    }
+
+    if (aiCloseBtn) {
+        aiCloseBtn.addEventListener('click', () => {
+            aiModal.classList.remove('active');
+        });
+    }
+
+    // Close on clicking overlay
+    window.addEventListener('click', (event) => {
+        if (event.target === aiModal) {
+            aiModal.classList.remove('active');
+        }
+    });
+
+    if (aiCancelBtn) {
+        aiCancelBtn.addEventListener('click', () => {
+            if (window.app && originalChain) {
+                window.app.loadChainConfig(originalChain, false);
+                aiStatusContainer.style.display = 'block';
+                aiStatusText.textContent = "Changes reverted.";
+                aiStatusText.style.color = "var(--text-color)";
+                aiStatusDetail.textContent = "";
+                aiCancelBtn.style.display = 'none';
+            }
+        });
+    }
+
+    if (aiExecuteBtn) {
+        aiExecuteBtn.addEventListener('click', async () => {
+            const prompt = aiInput.value.trim();
+            if (!prompt) return;
+
+            aiExecuteBtn.disabled = true;
+            aiStatusContainer.style.display = 'block';
+            aiStatusText.textContent = "AI Assistant is thinking...";
+            aiStatusText.style.color = "var(--text-color)";
+            aiStatusDetail.textContent = "Cycle 1...";
+
+            // Re-save original chain in case user executes multiple times      
+            if (window.app) {
+                originalChain = window.app.getChainConfig();
+            }
+
+            const agent = new OptimizedAIAgent();
+
+            // Monkey-patch console.log to update UI status
+            const originalLog = console.log;
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                if (typeof args[0] === 'string' && args[0].startsWith('--- Cycle')) {                                                                                               
+                    aiStatusDetail.textContent = args[0] + '...';
+                }
+            };
+
+            try {
+                const currentChain = window.app ? window.app.getChainConfig() : [];                                                                                             
+                const result = await agent.run(prompt, currentChain);
+
+                if (result.status === "success") {
+                    aiStatusText.textContent = "Success!";
+                    aiStatusText.style.color = "var(--success)";
+                    aiStatusDetail.textContent = result.message;
+
+                    if (window.app && result.chain) {
+                        window.app.loadChainConfig(result.chain, false);        
+                    }
+                    aiCancelBtn.style.display = 'block';
+                } else {
+                    aiStatusText.textContent = "Failed";
+                    aiStatusText.style.color = "var(--error)";
+                    aiStatusDetail.textContent = result.message;
+                }
+            } catch (e) {
+                aiStatusText.textContent = "System Error";
+                aiStatusText.style.color = "var(--error)";
+                aiStatusDetail.textContent = e.message;
+            } finally {
+                aiExecuteBtn.disabled = false;
+                console.log = originalLog;
+            }
+        });
+    }
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const aiBtn = document.getElementById('ai-assistant-btn');
+    const aiModal = document.getElementById('ai-modal');
+    const aiCloseBtn = document.getElementById('close-ai-modal-btn');
+    const aiExecuteBtn = document.getElementById('ai-execute-btn');
+    const aiCancelBtn = document.getElementById('ai-cancel-changes-btn');       
+    const aiInput = document.getElementById('ai-prompt-input');
+    const aiStatusContainer = document.getElementById('ai-status-container');   
+    const aiStatusText = document.getElementById('ai-status-text');
+    const aiStatusDetail = document.getElementById('ai-status-detail');
+
+    let originalChain = null;
+
+    if (aiBtn) {
+        aiBtn.addEventListener('click', () => {
+            aiModal.classList.add('active');
+            aiInput.value = '';
+            aiStatusContainer.style.display = 'none';
+            aiCancelBtn.style.display = 'none';
+            aiExecuteBtn.disabled = false;
+            // Save current chain in case user wants to cancel
+            if (window.app) {
+                originalChain = window.app.getChainConfig();
+            }
+        });
+    }
+
+    if (aiCloseBtn) {
+        aiCloseBtn.addEventListener('click', () => {
+            aiModal.classList.remove('active');
+        });
+    }
+
+    // Close on clicking overlay
+    window.addEventListener('click', (event) => {
+        if (event.target === aiModal) {
+            aiModal.classList.remove('active');
+        }
+    });
+
+    if (aiCancelBtn) {
+        aiCancelBtn.addEventListener('click', () => {
+            if (window.app && originalChain) {
+                window.app.loadChainConfig(originalChain, false);
+                aiStatusContainer.style.display = 'block';
+                aiStatusText.textContent = "Changes reverted.";
+                aiStatusText.style.color = "var(--text-color)";
+                aiStatusDetail.textContent = "";
+                aiCancelBtn.style.display = 'none';
+            }
+        });
+    }
+
+    if (aiExecuteBtn) {
+        aiExecuteBtn.addEventListener('click', async () => {
+            const prompt = aiInput.value.trim();
+            if (!prompt) return;
+
+            aiExecuteBtn.disabled = true;
+            aiStatusContainer.style.display = 'block';
+            aiStatusText.textContent = "AI Assistant is thinking...";
+            aiStatusText.style.color = "var(--text-color)";
+            aiStatusDetail.textContent = "Cycle 1...";
+
+            // Re-save original chain in case user executes multiple times      
+            if (window.app) {
+                originalChain = window.app.getChainConfig();
+            }
+
+            const agent = new OptimizedAIAgent();
+
+            // Monkey-patch console.log to update UI status
+            const originalLog = console.log;
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                if (typeof args[0] === 'string' && args[0].startsWith('--- Cycle')) {                                                                                               
+                    aiStatusDetail.textContent = args[0] + '...';
+                }
+            };
+
+            try {
+                const currentChain = window.app ? window.app.getChainConfig() : [];                                                                                             
+                const result = await agent.run(prompt, currentChain);
+
+                if (result.status === "success") {
+                    aiStatusText.textContent = "Success!";
+                    aiStatusText.style.color = "var(--success)";
+                    aiStatusDetail.textContent = result.message;
+
+                    if (window.app && result.chain) {
+                        window.app.loadChainConfig(result.chain, false);        
+                    }
+                    aiCancelBtn.style.display = 'block';
+                } else {
+                    aiStatusText.textContent = "Failed";
+                    aiStatusText.style.color = "var(--error)";
+                    aiStatusDetail.textContent = result.message;
+                }
+            } catch (e) {
+                aiStatusText.textContent = "System Error";
+                aiStatusText.style.color = "var(--error)";
+                aiStatusDetail.textContent = e.message;
+            } finally {
+                aiExecuteBtn.disabled = false;
+                console.log = originalLog;
+            }
+        });
+    }
+});

@@ -114,6 +114,9 @@
                         <span id="workspace-title-text" data-i18n="new_chain">Новая цепочка</span>
                     </div>
                     <div class="actions">
+                        <button class="btn-toolbar" id="ai-assistant-btn" tabindex="-1" title="AI помощник" data-i18n-title="ai_assistant_title">
+                            <i class="fas fa-magic"></i> <span data-i18n="ai_assistant">AI помощник</span>
+                        </button>
                         <button class="btn-toolbar primary execute" id="run-manual-btn" style="display: none;" title="F9">
                             <i class="fas fa-play"></i> <span data-i18n="run_chain">Выполнить</span>
                         </button>
@@ -198,6 +201,30 @@
         </div>
     </div>
 
+    <!-- AI ASSISTANT MODAL -->
+    <div id="ai-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-magic"></i> <span data-i18n="ai_assistant">AI помощник</span></div>
+                <button class="close-modal" id="close-ai-modal-btn">&times;</button>
+            </div>
+            <div class="modal-content" style="padding: 20px;">
+                <p data-i18n="ai_assistant_desc" style="margin-bottom: 15px; color: var(--text-secondary);">Опишите простыми словами, какую цепочку обработки данных вы хотите создать или изменить.</p>
+                <textarea id="ai-prompt-input" style="width: 100%; height: 120px; padding: 10px; margin-bottom: 15px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color); resize: vertical;" placeholder="Например: Извлеки все email адреса и отсортируй их по алфавиту..."></textarea>
+                
+                <div id="ai-status-container" style="display: none; margin-bottom: 15px; padding: 15px; border-radius: 4px; background: var(--bg-hover);">
+                    <div id="ai-status-text" style="margin-bottom: 10px; font-weight: bold;"></div>
+                    <div id="ai-status-detail" style="font-size: 0.9em; color: var(--text-secondary); white-space: pre-wrap;"></div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;" id="ai-actions">
+                    <button class="btn-toolbar" id="ai-cancel-changes-btn" style="display: none;"><i class="fas fa-undo"></i> <span data-i18n="cancel_changes">Отменить изменения</span></button>
+                    <button class="btn-toolbar primary" id="ai-execute-btn"><i class="fas fa-play"></i> <span data-i18n="execute">Выполнить</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- DIALOG MODAL (Alert/Confirm/Prompt) -->
     <div id="dialog-modal" class="modal-overlay">
         <div class="modal dialog">
@@ -214,8 +241,8 @@
         </div>
     </div>
 
+    <script src="js/ai-agent.js"></script>
     <script src="js/ui.js"></script>
-
 </body>
 
 </html>
