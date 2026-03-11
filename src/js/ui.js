@@ -2122,221 +2122,223 @@ window.onclick = function (event) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const aiBtn = document.getElementById('ai-assistant-btn');
-    const aiModal = document.getElementById('ai-modal');
-    const aiCloseBtn = document.getElementById('close-ai-modal-btn');
-    const aiExecuteBtn = document.getElementById('ai-execute-btn');
-    const aiCancelBtn = document.getElementById('ai-cancel-changes-btn');       
+    const aiSidebar = document.getElementById('ai-sidebar');
+    const aiCloseBtn = document.getElementById('close-ai-sidebar-btn');
     const aiInput = document.getElementById('ai-prompt-input');
-    const aiStatusContainer = document.getElementById('ai-status-container');   
-    const aiStatusText = document.getElementById('ai-status-text');
-    const aiStatusDetail = document.getElementById('ai-status-detail');
+    const aiSendBtn = document.getElementById('ai-send-btn');
+    const aiChatContainer = document.getElementById('ai-chat-container');
 
+    let chatHistory = [];
     let originalChain = null;
+    let isProcessing = false;
+
+    // Initialize chat
+    function initChat() {
+        aiChatContainer.innerHTML = '';
+        chatHistory = [];
+        addWelcomeMessage();
+    }
+
+    function addWelcomeMessage() {
+        const welcomeMessage = {
+            type: 'assistant',
+            content: i18n.t('ai_welcome_message') || 'Привет! Я AI помощник для создания цепочек обработки данных. Опишите, что вы хотите сделать с вашими данными.',
+            timestamp: new Date()
+        };
+        chatHistory.push(welcomeMessage);
+        renderMessage(welcomeMessage);
+    }
+
+    function renderMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `ai-message ${message.type}`;
+
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = 'ai-message-bubble';
+        bubbleDiv.textContent = message.content;
+
+        // clickable support
+        if (message.clickable && typeof message.onClick === 'function') {
+            bubbleDiv.style.cursor = 'pointer';
+            bubbleDiv.style.textDecoration = 'underline';
+            bubbleDiv.addEventListener('click', message.onClick);
+        }
+
+        messageDiv.appendChild(bubbleDiv);
+        aiChatContainer.appendChild(messageDiv);
+
+        // Scroll to bottom
+        aiChatContainer.scrollTop = aiChatContainer.scrollHeight;
+    }
+
+    function addSaveIndicator(chainSnapshot) {
+        const indicatorDiv = document.createElement('div');
+        indicatorDiv.className = 'ai-save-indicator';
+        indicatorDiv.innerHTML = '<i class="fas fa-save"></i> ' + (i18n.t('chain_saved') || 'Цепочка сохранена');
+        indicatorDiv.title = i18n.t('chain_saved_click') || 'Нажмите, чтобы откатить';
+        indicatorDiv.style.cursor = 'pointer';
+        indicatorDiv.addEventListener('click', () => {
+            if (window.app && chainSnapshot) {
+                window.app.loadChainConfig(chainSnapshot, false);
+                window.app.showToast(i18n.t('chain_reverted') || 'Цепочка восстановлена');
+            }
+        });
+        aiChatContainer.appendChild(indicatorDiv);
+
+        // Scroll to bottom
+        aiChatContainer.scrollTop = aiChatContainer.scrollHeight;
+
+        // do NOT auto-remove; stays until next save or manual click
+    }
+
+    function updateSendButton() {
+        const hasText = aiInput.value.trim().length > 0;
+        aiSendBtn.disabled = !hasText || isProcessing;
+    }
 
     if (aiBtn) {
         aiBtn.addEventListener('click', () => {
-            aiModal.classList.add('active');
-            aiInput.value = '';
-            aiStatusContainer.style.display = 'none';
-            aiCancelBtn.style.display = 'none';
-            aiExecuteBtn.disabled = false;
-            // Save current chain in case user wants to cancel
-            if (window.app) {
-                originalChain = window.app.getChainConfig();
+            aiSidebar.classList.add('active');
+            if (chatHistory.length === 0) {
+                initChat();
             }
+            setTimeout(() => aiInput.focus(), 100);
         });
     }
 
     if (aiCloseBtn) {
         aiCloseBtn.addEventListener('click', () => {
-            aiModal.classList.remove('active');
+            aiSidebar.classList.remove('active');
         });
     }
 
-    // Close on clicking overlay
+    // Close on clicking outside
     window.addEventListener('click', (event) => {
-        if (event.target === aiModal) {
-            aiModal.classList.remove('active');
+        if (event.target === aiSidebar) {
+            aiSidebar.classList.remove('active');
         }
     });
 
-    if (aiCancelBtn) {
-        aiCancelBtn.addEventListener('click', () => {
-            if (window.app && originalChain) {
-                window.app.loadChainConfig(originalChain, false);
-                aiStatusContainer.style.display = 'block';
-                aiStatusText.textContent = "Changes reverted.";
-                aiStatusText.style.color = "var(--text-color)";
-                aiStatusDetail.textContent = "";
-                aiCancelBtn.style.display = 'none';
+    // Input handling
+    if (aiInput) {
+        aiInput.addEventListener('input', updateSendButton);
+        aiInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!aiSendBtn.disabled) {
+                    aiSendBtn.click();
+                }
             }
         });
     }
 
-    if (aiExecuteBtn) {
-        aiExecuteBtn.addEventListener('click', async () => {
+    if (aiSendBtn) {
+        aiSendBtn.addEventListener('click', async () => {
             const prompt = aiInput.value.trim();
-            if (!prompt) return;
+            if (!prompt || isProcessing) return;
 
-            aiExecuteBtn.disabled = true;
-            aiStatusContainer.style.display = 'block';
-            aiStatusText.textContent = "AI Assistant is thinking...";
-            aiStatusText.style.color = "var(--text-color)";
-            aiStatusDetail.textContent = "Cycle 1...";
+            isProcessing = true;
+            updateSendButton();
 
-            // Re-save original chain in case user executes multiple times      
-            if (window.app) {
-                originalChain = window.app.getChainConfig();
-            }
-
-            const agent = new OptimizedAIAgent();
-
-            // Monkey-patch console.log to update UI status
-            const originalLog = console.log;
-            console.log = function(...args) {
-                originalLog.apply(console, args);
-                if (typeof args[0] === 'string' && args[0].startsWith('--- Cycle')) {                                                                                               
-                    aiStatusDetail.textContent = args[0] + '...';
+            // Add user message to chat – show collapsible prompt
+            const userMessage = {
+                type: 'user',
+                content: i18n.t('ai_prompt_sent') || '[Запрос] (нажмите, чтобы просмотреть)',
+                full: prompt,
+                timestamp: new Date(),
+                clickable: true,
+                onClick: function() {
+                    const bubble = this._bubble;
+                    if (bubble.textContent === userMessage.content) {
+                        bubble.textContent = userMessage.full;
+                    } else {
+                        bubble.textContent = userMessage.content;
+                    }
                 }
             };
+            chatHistory.push(userMessage);
+            renderMessage(userMessage);
 
-            try {
-                const currentChain = window.app ? window.app.getChainConfig() : [];                                                                                             
-                const result = await agent.run(prompt, currentChain);
-
-                if (result.status === "success") {
-                    aiStatusText.textContent = "Success!";
-                    aiStatusText.style.color = "var(--success)";
-                    aiStatusDetail.textContent = result.message;
-
-                    if (window.app && result.chain) {
-                        window.app.loadChainConfig(result.chain, false);        
-                    }
-                    aiCancelBtn.style.display = 'block';
-                } else {
-                    aiStatusText.textContent = "Failed";
-                    aiStatusText.style.color = "var(--error)";
-                    aiStatusDetail.textContent = result.message;
-                }
-            } catch (e) {
-                aiStatusText.textContent = "System Error";
-                aiStatusText.style.color = "var(--error)";
-                aiStatusDetail.textContent = e.message;
-            } finally {
-                aiExecuteBtn.disabled = false;
-                console.log = originalLog;
-            }
-        });
-    }
-});
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    const aiBtn = document.getElementById('ai-assistant-btn');
-    const aiModal = document.getElementById('ai-modal');
-    const aiCloseBtn = document.getElementById('close-ai-modal-btn');
-    const aiExecuteBtn = document.getElementById('ai-execute-btn');
-    const aiCancelBtn = document.getElementById('ai-cancel-changes-btn');       
-    const aiInput = document.getElementById('ai-prompt-input');
-    const aiStatusContainer = document.getElementById('ai-status-container');   
-    const aiStatusText = document.getElementById('ai-status-text');
-    const aiStatusDetail = document.getElementById('ai-status-detail');
-
-    let originalChain = null;
-
-    if (aiBtn) {
-        aiBtn.addEventListener('click', () => {
-            aiModal.classList.add('active');
+            // Clear input
             aiInput.value = '';
-            aiStatusContainer.style.display = 'none';
-            aiCancelBtn.style.display = 'none';
-            aiExecuteBtn.disabled = false;
-            // Save current chain in case user wants to cancel
+
+            // Auto-save current chain
             if (window.app) {
                 originalChain = window.app.getChainConfig();
+                // Save snapshot and show clickable indicator
+                addSaveIndicator(originalChain);
             }
-        });
-    }
-
-    if (aiCloseBtn) {
-        aiCloseBtn.addEventListener('click', () => {
-            aiModal.classList.remove('active');
-        });
-    }
-
-    // Close on clicking overlay
-    window.addEventListener('click', (event) => {
-        if (event.target === aiModal) {
-            aiModal.classList.remove('active');
-        }
-    });
-
-    if (aiCancelBtn) {
-        aiCancelBtn.addEventListener('click', () => {
-            if (window.app && originalChain) {
-                window.app.loadChainConfig(originalChain, false);
-                aiStatusContainer.style.display = 'block';
-                aiStatusText.textContent = "Changes reverted.";
-                aiStatusText.style.color = "var(--text-color)";
-                aiStatusDetail.textContent = "";
-                aiCancelBtn.style.display = 'none';
-            }
-        });
-    }
-
-    if (aiExecuteBtn) {
-        aiExecuteBtn.addEventListener('click', async () => {
-            const prompt = aiInput.value.trim();
-            if (!prompt) return;
-
-            aiExecuteBtn.disabled = true;
-            aiStatusContainer.style.display = 'block';
-            aiStatusText.textContent = "AI Assistant is thinking...";
-            aiStatusText.style.color = "var(--text-color)";
-            aiStatusDetail.textContent = "Cycle 1...";
-
-            // Re-save original chain in case user executes multiple times      
-            if (window.app) {
-                originalChain = window.app.getChainConfig();
-            }
-
-            const agent = new OptimizedAIAgent();
-
-            // Monkey-patch console.log to update UI status
-            const originalLog = console.log;
-            console.log = function(...args) {
-                originalLog.apply(console, args);
-                if (typeof args[0] === 'string' && args[0].startsWith('--- Cycle')) {                                                                                               
-                    aiStatusDetail.textContent = args[0] + '...';
-                }
+            // Add thinking indicator
+            const thinkingMessage = {
+                type: 'assistant',
+                content: i18n.t('ai_thinking') || 'Думаю...',
+                timestamp: new Date(),
+                isThinking: true
             };
+            chatHistory.push(thinkingMessage);
+            renderMessage(thinkingMessage);
 
             try {
-                const currentChain = window.app ? window.app.getChainConfig() : [];                                                                                             
+                const agent = new OptimizedAIAgent();
+                const currentChain = window.app ? window.app.getChainConfig() : [];
                 const result = await agent.run(prompt, currentChain);
 
+                // Remove thinking message
+                chatHistory.pop();
+                const thinkingDiv = aiChatContainer.lastElementChild;
+                if (thinkingDiv && thinkingDiv.classList.contains('ai-message') && thinkingDiv.classList.contains('assistant')) {
+                    thinkingDiv.remove();
+                }
+
                 if (result.status === "success") {
-                    aiStatusText.textContent = "Success!";
-                    aiStatusText.style.color = "var(--success)";
-                    aiStatusDetail.textContent = result.message;
+                    const successMessage = {
+                        type: 'assistant',
+                        content: result.message,
+                        timestamp: new Date(),
+                        clickable: !!(window.app && result.chain),
+                        onClick: () => {
+                            if (window.app && result.chain) {
+                                window.app.loadChainConfig(result.chain, false);
+                            }
+                        }
+                    };
+                    chatHistory.push(successMessage);
+                    renderMessage(successMessage);
 
                     if (window.app && result.chain) {
-                        window.app.loadChainConfig(result.chain, false);        
+                        window.app.loadChainConfig(result.chain, false);
                     }
-                    aiCancelBtn.style.display = 'block';
                 } else {
-                    aiStatusText.textContent = "Failed";
-                    aiStatusText.style.color = "var(--error)";
-                    aiStatusDetail.textContent = result.message;
+                    const errorMessage = {
+                        type: 'assistant',
+                        content: `❌ ${result.message}`
+                    };
+                    chatHistory.push(errorMessage);
+                    renderMessage(errorMessage);
                 }
             } catch (e) {
-                aiStatusText.textContent = "System Error";
-                aiStatusText.style.color = "var(--error)";
-                aiStatusDetail.textContent = e.message;
+                // Remove thinking message
+                chatHistory.pop();
+                const thinkingDiv = aiChatContainer.lastElementChild;
+                if (thinkingDiv && thinkingDiv.classList.contains('ai-message') && thinkingDiv.classList.contains('assistant')) {
+                    thinkingDiv.remove();
+                }
+
+                const errorMessage = {
+                    type: 'assistant',
+                    content: `❌ ${i18n.t('ai_error') || 'Произошла ошибка'}: ${e.message}`,
+                    timestamp: new Date()
+                };
+                chatHistory.push(errorMessage);
+                renderMessage(errorMessage);
             } finally {
-                aiExecuteBtn.disabled = false;
-                console.log = originalLog;
+                isProcessing = false;
+                updateSendButton();
             }
         });
     }
+
+    // Initialize
+    updateSendButton();
 });
+

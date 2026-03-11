@@ -201,27 +201,24 @@
         </div>
     </div>
 
-    <!-- AI ASSISTANT MODAL -->
-    <div id="ai-modal" class="modal-overlay">
-        <div class="modal" style="max-width: 600px;">
-            <div class="modal-header">
-                <div class="modal-title"><i class="fas fa-magic"></i> <span data-i18n="ai_assistant">AI помощник</span></div>
-                <button class="close-modal" id="close-ai-modal-btn">&times;</button>
+    <!-- AI ASSISTANT SIDEBAR -->
+    <div id="ai-sidebar" class="ai-sidebar">
+        <div class="ai-sidebar-header">
+            <div class="ai-sidebar-title">
+                <i class="fas fa-magic"></i> <span data-i18n="ai_assistant">AI помощник</span>
             </div>
-            <div class="modal-content" style="padding: 20px;">
-                <p data-i18n="ai_assistant_desc" style="margin-bottom: 15px; color: var(--text-secondary);">Опишите простыми словами, какую цепочку обработки данных вы хотите создать или изменить.</p>
-                <textarea id="ai-prompt-input" style="width: 100%; height: 120px; padding: 10px; margin-bottom: 15px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color); resize: vertical;" placeholder="Например: Извлеки все email адреса и отсортируй их по алфавиту..."></textarea>
-                
-                <div id="ai-status-container" style="display: none; margin-bottom: 15px; padding: 15px; border-radius: 4px; background: var(--bg-hover);">
-                    <div id="ai-status-text" style="margin-bottom: 10px; font-weight: bold;"></div>
-                    <div id="ai-status-detail" style="font-size: 0.9em; color: var(--text-secondary); white-space: pre-wrap;"></div>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 10px;" id="ai-actions">
-                    <button class="btn-toolbar" id="ai-cancel-changes-btn" style="display: none;"><i class="fas fa-undo"></i> <span data-i18n="cancel_changes">Отменить изменения</span></button>
-                    <button class="btn-toolbar primary" id="ai-execute-btn"><i class="fas fa-play"></i> <span data-i18n="execute">Выполнить</span></button>
-                </div>
-            </div>
+            <button class="ai-sidebar-close" id="close-ai-sidebar-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="ai-chat-container" id="ai-chat-container">
+            <!-- Chat messages will be added here -->
+        </div>
+        <div class="ai-input-container">
+            <textarea id="ai-prompt-input" placeholder="Опишите, какую цепочку обработки данных вы хотите создать или изменить..." data-i18n="ai_prompt_placeholder"></textarea>
+            <button class="ai-send-btn" id="ai-send-btn" disabled>
+                <i class="fas fa-paper-plane"></i>
+            </button>
         </div>
     </div>
 
