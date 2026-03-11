@@ -1,7 +1,7 @@
 class CustomBlockAIAgent extends OptimizedAIAgent {
     constructor() {
         super();
-        this.block_max_cycles = 3;
+        this.block_max_cycles = 1;
         
         // Define the extended schema to include optional new_block and its tests
         this.generation_schema = {
@@ -71,7 +71,7 @@ If you create a new block, include the "new_block" object in your JSON response.
 - description: short description
 - long_description: detailed description (optional)
 - params: array of parameter definitions, each having: id, type (text, number, checkbox, select, delimiter), label, and an optional default value
-- js_code: a JavaScript string containing an anonymous function body or arrow function for the 'process' method. It must accept (lines, params) and return { result: [...], stats: {...} }. DO NOT write 'function(lines, params)' signature, just the code block content, or an arrow function like '(lines, params) => { ... }'. Actually, write it exactly like a full function definition string: "(lines, params) => { ... }" or "function(lines, params) { ... }".
+- js_code: A string containing a Javascript function body. It gets 'lines' (array of strings) and 'params' (object) as input. It must return an object like '{ result: [...], stats: {...} }'. Example: 'return { result: lines.map(l => l + params.suffix) };'. Do not use any global 'input' variable.
 - block_test_cases: array of strings to test this specific block.
 - block_expected_output: array of strings representing the expected result after processing 'block_test_cases'.
 
@@ -213,7 +213,9 @@ Remember, the "new_block" is optional. Only use it when required.`;
                 let codeStr = current_block.js_code.trim();
                 // Ensure it's a valid JS expression representing a function
                 // Sometimes LLM returns full function string, sometimes an arrow function
-                if (!codeStr.startsWith('function') && !codeStr.includes('=>')) {
+                // A simple includes('=>') is not enough, as it can be part of an inner function.
+                const isArrowFunction = /^\s*(async\s+)?(\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>/.test(codeStr);
+                if (!codeStr.startsWith('function') && !isArrowFunction) {
                     codeStr = `function(lines, params) { ${codeStr} }`;
                 }
                 
@@ -233,6 +235,7 @@ Remember, the "new_block" is optional. Only use it when required.`;
                     throw new Error("process function must return an object with a 'result' array property");
                 }
                 actualOutput = resultObj.result;
+                console.log("--- Custom Block Eval Result ---", actualOutput);
 
             } catch (e) {
                 executionError = e.message;
@@ -275,8 +278,9 @@ Please compare Actual Output with Expected Output. If they match and solve the b
             } else {
                 // Request a fix
                 let fixPrompt = `The block verification failed: ${verify_res.message || executionError}.
-Please provide an updated "new_block" object containing fixed "js_code" or "params".
-Respond ONLY with a JSON object that matches the "new_block" schema property exactly.`;
+Please provide an updated "new_block" object containing a fixed "js_code" or other properties to resolve the issue.
+All user-facing text properties in the block (like 'title', 'description', parameter 'label's) should be in the same language as the title of the block being fixed.
+Respond ONLY with the JSON object for the updated "new_block".`;
                 
                 block_chat_history.push({"role": "user", "content": fixPrompt});
 

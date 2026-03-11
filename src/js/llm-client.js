@@ -236,6 +236,14 @@ class LLMClient {
             msgs[msgs.length - 1].content += '\n\nIMPORTANT: You must output ONLY a valid JSON object strictly matching this JSON schema:\n' + JSON.stringify(schema, null, 2);
         }
 
+        console.log("--- LLM Request ---");
+        //console.log("Endpoint:", endpoint);
+        msgs.forEach(msg => {
+            console.log(`[${msg.role.toUpperCase()}]`);
+            console.log(msg.content);
+        });
+        console.log("-------------------");
+
         const payload = {
             model: this.settings.model,
             messages: msgs,
@@ -261,6 +269,10 @@ class LLMClient {
 
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content || '{}';
+
+        console.log("--- LLM Response ---");
+        console.log(content);
+        console.log("--------------------");
 
         // Extract JSON block if it's wrapped in markdown
         let jsonStr = content.trim();

@@ -35,8 +35,10 @@ class AIAgentProvider {
                     executionLog.push({ type: block.type, status: 'error', msg: 'Tool not found' });
                 }
             }
+            console.log("--- Chain Execution Result ---", { status: 'ok', final_output: currentData, log: executionLog });
             return { status: 'ok', final_output: currentData, log: executionLog };
         } catch (e) {
+            console.error("--- Chain Execution Error ---", e);
             return { status: 'error', error: e.message };
         }
     }
@@ -44,7 +46,7 @@ class AIAgentProvider {
 
 class OptimizedAIAgent {
     constructor() {
-        this.max_cycles = 3;
+        this.max_cycles = 2;
         this.chat_history = [];
         this.provider = new AIAgentProvider(window.llmClient);
         
@@ -247,6 +249,7 @@ Respond with a JSON object:
   "message": "Detailed description of the error if status is error, otherwise empty.",
   "summary": "Short summary of what was achieved or what failed."
 }
+IMPORTANT: Your 'message' and 'summary' fields MUST be in the same language as the original User Task.
 ONLY return the JSON object.`;
     }
 

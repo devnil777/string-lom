@@ -2279,7 +2279,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMessage(thinkingMessage);
 
             try {
-                const agent = new OptimizedAIAgent();
+                let agent;
+                const allowNewBlocks = document.getElementById('ai-allow-new-blocks')?.checked;
+
+                if (allowNewBlocks) {
+                    agent = new CustomBlockAIAgent();
+                } else {
+                    agent = new OptimizedAIAgent();
+                }
                 const currentChain = window.app ? window.app.getChainConfig() : [];
                 const result = await agent.run(prompt, currentChain);
 

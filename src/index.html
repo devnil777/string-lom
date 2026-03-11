@@ -215,6 +215,10 @@
             <!-- Chat messages will be added here -->
         </div>
         <div class="ai-input-container">
+            <div class="ai-options" style="margin-bottom: 8px; font-size: 0.9em; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="ai-allow-new-blocks" style="width: auto; margin: 0;">
+                <label for="ai-allow-new-blocks" data-i18n="ai_allow_new_blocks" style="margin: 0; cursor: pointer;">Разрешить создавать новые блоки</label>
+            </div>
             <textarea id="ai-prompt-input" placeholder="Опишите, какую цепочку обработки данных вы хотите создать или изменить..." data-i18n="ai_prompt_placeholder"></textarea>
             <button class="ai-send-btn" id="ai-send-btn" disabled>
                 <i class="fas fa-paper-plane"></i>
@@ -239,6 +243,7 @@
     </div>
 
     <script src="js/ai-agent.js"></script>
+    <script src="js/advanced-ai-agent.js"></script>
     <script src="js/ui.js"></script>
 </body>
 
