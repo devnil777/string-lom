@@ -8,6 +8,7 @@ const version = args.find(arg => arg.startsWith('--version='))?.split('=')[1] ||
 
 const SRC_DIR = path.join(__dirname, '../src');
 const DIST_DIR = path.join(__dirname, '../dist');
+const WEB_DIR = path.join(DIST_DIR, 'web');
 const PROJECT_ROOT = path.join(__dirname, '..');
 
 const OPENGRAPH_TAGS = `
@@ -37,14 +38,23 @@ function build() {
     }
     fs.mkdirSync(DIST_DIR, { recursive: true });
 
-    // 2. Copy all files from src to dist
-    fs.cpSync(SRC_DIR, DIST_DIR, { recursive: true });
+    // 2. Copy all files from src to web folder in dist
+    fs.mkdirSync(WEB_DIR, { recursive: true });
+    fs.cpSync(SRC_DIR, WEB_DIR, { recursive: true });
 
-    // 3. Copy README to dist
+    // 3. Copy README and proxy files to dist
     fs.copyFileSync(path.join(PROJECT_ROOT, 'README.md'), path.join(DIST_DIR, 'README.md'));
+    fs.copyFileSync(path.join(PROJECT_ROOT, 'README_ru.md'), path.join(DIST_DIR, 'README_ru.md'));
 
-    // 4. Process index.html
-    let indexHtml = fs.readFileSync(path.join(DIST_DIR, 'index.html'), 'utf8');
+    if (fs.existsSync(path.join(PROJECT_ROOT, 'proxy.py'))) {
+        fs.copyFileSync(path.join(PROJECT_ROOT, 'proxy.py'), path.join(DIST_DIR, 'proxy.py'));
+    }
+    if (fs.existsSync(path.join(PROJECT_ROOT, 'requirements.txt'))) {
+        fs.copyFileSync(path.join(PROJECT_ROOT, 'requirements.txt'), path.join(DIST_DIR, 'requirements.txt'));
+    }
+
+    // 4. Process index.html in web folder
+    let indexHtml = fs.readFileSync(path.join(WEB_DIR, 'index.html'), 'utf8');
 
     // Inject Version
     indexHtml = indexHtml.replace(/<!-- VERSION_PLACEHOLDER -->/g, version);
@@ -63,7 +73,7 @@ function build() {
         indexHtml = indexHtml.replace('<!-- OPENGRAPH_PLACEHOLDER -->', '');
     }
 
-    fs.writeFileSync(path.join(DIST_DIR, 'index.html'), indexHtml);
+    fs.writeFileSync(path.join(WEB_DIR, 'index.html'), indexHtml);
 
     // 7. Create ZIP archive if mode is release
     if (mode === 'release') {

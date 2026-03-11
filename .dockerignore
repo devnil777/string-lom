@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+tests
+dist
+release
+scripts
+*.zip
+*.md
+analytics-*.html
+test_cases.md
+bugs.md
+.gitignore

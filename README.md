@@ -23,12 +23,38 @@
 
 ## 🚀 Quick Start
 
-1. Open the `src/index.html` file in any modern browser.
+### Option 1: No Installation (SPA)
+1. Open the `src/index.html` file (or `web/index.html` from the release) in any modern browser.
 2. Enter text in the **Data Input** block.
 3. Click **+ Add Block** (or Alt + A) and select the desired tool.
 4. The result will be displayed in the **Final Result** block at the bottom of the page.
 
 > No installation, server, or internet (after the initial load) is required.
+
+### Option 2: Local Run with Proxy (Python)
+This option allows you to use a local proxy server for LLM integration.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/devnil777/string-lom.git
+   cd string-lom
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Start the proxy server:
+   ```bash
+   python proxy.py
+   ```
+4. The application will be available at `http://127.0.0.1:20000` (the port may vary, check the console output).
+
+### Option 3: Docker
+The easiest way to run everything together in an isolated container.
+1. Run the container from Docker Hub:
+   ```bash
+   docker run -p 8000:8000 devnil777/string-lo
+   ```
+2. Open `http://localhost:8000` in your browser.
 
 ---
 
