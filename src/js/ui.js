@@ -2134,7 +2134,6 @@ window.AIAgentChat = {
     sendBtn: null,
     chatHistory: [],
     isProcessing: false,
-    originalChain: null,
     init() {
         this.chatContainer = document.getElementById('ai-chat-container');
         this.promptInput = document.getElementById('ai-prompt-input');
@@ -2152,7 +2151,6 @@ window.AIAgentChat = {
             }
         });
         this.sendBtn.onclick = this.handleSend.bind(this);
-        this.originalChain = window.app.getChainConfig();
         setTimeout(() => this.promptInput.focus(), 100);
         this.updateSendButton();
     },
@@ -2213,7 +2211,7 @@ window.AIAgentChat = {
                 textContent = `${i18n.t('ai_error_prefix') || 'Error'}: ${message.content}`;
                 break;
             case 'thinking':
-                icon = '<i class="fas fa-brain"></i>';
+                icon = '<i class="fas fa-brain ai-thinking-icon"></i>';
                 textContent = `<div class="typing"><span></span><span></span><span></span></div>`;
                 break;
         }
@@ -2242,17 +2240,33 @@ window.AIAgentChat = {
             }
 
             const currentChain = window.app.getChainConfig();
-            this.addMessage('saved', '', { chain: this.originalChain });
-            this.originalChain = window.app.getChainConfig();
+            
             const result = await agent.run(userInput, currentChain, allowNewBlocks, (step) => {
                 const thinkingContent = thinkingDiv.querySelector('.ai-message-content');
                 if (thinkingContent) {
-                    thinkingContent.textContent = i18n.t(step.i18n_key) || step.message;
+                    let text = i18n.t(step.i18n_key);
+                    // If translation not found, use the fallback message from agent
+                    if (text === step.i18n_key) {
+                        text = step.message;
+                    } else if (step.data) {
+                        // Simple interpolation for keys like {current}, {max}
+                        Object.keys(step.data).forEach(k => {
+                            text = text.replace(`{${k}}`, step.data[k]);
+                        });
+                    }
+                    thinkingContent.textContent = text;
                 }
             });
             thinkingDiv.remove();
             if (result.status === 'success') {
+                // Save state BEFORE applying AI changes
+                this.addMessage('saved', '', { chain: currentChain });
                 this.addMessage('success', result.message, { chain: result.chain });
+                
+                // Automatically apply the new chain
+                if (window.app && result.chain) {
+                    window.app.loadChainConfig({ blocks: result.chain });
+                }
             } else {
                 this.addMessage('error', result.message);
             }

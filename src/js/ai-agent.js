@@ -46,7 +46,7 @@ class AIAgentProvider {
 
 class OptimizedAIAgent {
     constructor() {
-        this.max_cycles = 2;
+        this.max_cycles = 3;
         this.chat_history = [];
         this.provider = new AIAgentProvider(window.llmClient);
         
