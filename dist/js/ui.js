@@ -192,6 +192,13 @@ class BlockApp {
 
         // Global Key Listeners for Modals & Shortcuts
         window.addEventListener('keydown', (e) => {
+            if (e.key === 'F9') {
+                const runBtn = document.getElementById('run-manual-btn');
+                if (runBtn && runBtn.style.display !== 'none' && !this.isRunning) {
+                    e.preventDefault();
+                    this.runChain(null, true);
+                }
+            }
             // --- FOCUS TRAP LOGIC ---
             if (e.key === 'Tab') {
                 const toolModal = document.getElementById('tool-modal');
@@ -521,7 +528,7 @@ class BlockApp {
     }
 
     // --- CUSTOM DIALOGS ---
-    customDialog({ title, body, footer, onShow, isLarge }) {
+    customDialog({ title, body, footer, onShow, isLarge, onClose }) {
         const modal = document.getElementById('dialog-modal');
         if (!modal) return;
         const modalContainer = modal.querySelector('.modal');
@@ -548,12 +555,18 @@ class BlockApp {
             btn.textContent = btnDef.text;
             btn.onclick = () => {
                 const shouldClose = btnDef.onClick ? btnDef.onClick() !== false : true;
-                if (shouldClose) modal.classList.remove('active');
+                if (shouldClose) {
+                    modal.classList.remove('active');
+                    if (onClose) onClose();
+                }
             };
             footerEl.appendChild(btn);
         });
 
-        if (closeBtn) closeBtn.onclick = () => modal.classList.remove('active');
+        if (closeBtn) closeBtn.onclick = () => {
+            modal.classList.remove('active');
+            if (onClose) onClose();
+        };
         modal.classList.add('active');
         if (onShow) onShow();
     }
@@ -606,6 +619,7 @@ class BlockApp {
     }
 
     showLLMSettings() {
+        const originalSettings = JSON.parse(JSON.stringify(window.llmClient.settings));
         const settings = window.llmClient.settings;
         const body = document.createElement('div');
         body.innerHTML = `
@@ -621,34 +635,95 @@ class BlockApp {
                     <option value="deepseek" ${settings.provider === 'deepseek' ? 'selected' : ''}>DeepSeek API Key</option>
                 </select>
             </div>
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_model')}</label>
-                <input type="text" id="settings-llm-model" value="${settings.model}" style="width:100%; box-sizing:border-box;">
+            <div id="llm-auth-section" style="margin-bottom: 15px; display: ${settings.provider === 'qwen_oauth' ? 'block' : 'none'};">
+                <button class="btn-toolbar primary" id="llm-authorize-btn" style="width: 100%; justify-content: center;">
+                    <i class="fas fa-key"></i> ${i18n.t('tool_llm_login_qwen')}
+                </button>
+                <div id="llm-token-status" style="margin-top: 10px; font-size: 12px; color: green;"></div>
             </div>
             <div class="form-group" style="margin-bottom: 15px;">
+                <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_model')}</label>
+                <select id="settings-llm-model" style="width:100%; box-sizing:border-box;"></select>
+            </div>
+            <div class="form-group" id="llm-key-section" style="margin-bottom: 15px; display: ${settings.provider === 'qwen_oauth' ? 'none' : 'block'};">
                 <label style="display:block; margin-bottom: 5px;">${i18n.t('tool_llm_api_key')}</label>
                 <input type="password" id="settings-llm-key" value="${settings.apiKey}" style="width:100%; box-sizing:border-box;">
             </div>
         `;
 
+        const setupUI = async () => {
+            const provider = body.querySelector('#settings-llm-provider').value;
+            body.querySelector('#llm-auth-section').style.display = provider === 'qwen_oauth' ? 'block' : 'none';
+            body.querySelector('#llm-key-section').style.display = provider === 'qwen_oauth' ? 'none' : 'block';
+
+            // Update token status
+            const tokenStatus = body.querySelector('#llm-token-status');
+            const creds = JSON.parse(localStorage.getItem('qwen_oauth') || 'null');
+            if (creds && creds.access_token) {
+                const tokenSnippet = creds.access_token.substring(0, 20) + '...';
+                tokenStatus.textContent = `Authorized: ${tokenSnippet}`;
+            } else {
+                tokenStatus.textContent = '';
+            }
+
+            const modelSelect = body.querySelector('#settings-llm-model');
+            const currentModel = modelSelect.value || settings.model;
+
+            modelSelect.innerHTML = `<option disabled selected>Loading models...</option>`;
+
+            // Temporary update settings to fetch correctly
+            window.llmClient.settings.provider = provider;
+            window.llmClient.settings.baseUrl = body.querySelector('#settings-llm-url').value.trim().replace(/\/$/, '');
+            window.llmClient.settings.apiKey = body.querySelector('#settings-llm-key').value.trim();
+
+            const models = await window.llmClient.fetchModels();
+            modelSelect.innerHTML = models.map(m => `<option value="${m}" ${m === currentModel ? 'selected' : ''}>${m}</option>`).join('');
+        };
+
+        const onAuthorized = () => setupUI();
+        window.addEventListener('llm-authorized', onAuthorized);
+
+        setTimeout(() => {
+            setupUI();
+            body.querySelector('#settings-llm-provider').addEventListener('change', setupUI);
+            body.querySelector('#settings-llm-key').addEventListener('blur', setupUI);
+            body.querySelector('#llm-authorize-btn').addEventListener('click', async () => {
+                const baseUrl = body.querySelector('#settings-llm-url').value.trim().replace(/\/$/, '');
+                if (!baseUrl) {
+                    this.alertAction(i18n.t('llm_proxy_url'));
+                    return;
+                }
+                await window.llmClient.startQwenOAuth(baseUrl, 'settings', this);
+            });
+        }, 0);
+
         const cancelText = i18n.t('cancel');
         const confirmText = i18n.t('confirm');
+
+        const cleanup = (restore = false) => {
+            window.removeEventListener('llm-authorized', onAuthorized);
+            if (restore) {
+                window.llmClient.settings = originalSettings;
+            }
+        };
 
         this.customDialog({
             title: i18n.t('llm_settings'),
             body: body,
+            onClose: () => cleanup(true),
             footer: [
-                { text: cancelText, type: 'secondary' },
+                { text: cancelText, type: 'secondary', onClick: () => cleanup(true) },
                 {
                     text: confirmText, type: 'primary', onClick: () => {
                         const newSettings = {
                             baseUrl: document.getElementById('settings-llm-url').value.trim().replace(/\/$/, ''),
                             provider: document.getElementById('settings-llm-provider').value,
-                            model: document.getElementById('settings-llm-model').value.trim(),
+                            model: document.getElementById('settings-llm-model').value,
                             apiKey: document.getElementById('settings-llm-key').value.trim()
                         };
                         window.llmClient.saveSettings(newSettings);
                         this.showToast(i18n.t('saved'));
+                        cleanup();
                     }
                 }
             ]
@@ -720,7 +795,8 @@ class BlockApp {
     getChainConfig() {
         const blocks = this.chain.map(block => ({
             type: block.type,
-            params: { ...block.params }
+            params: { ...block.params },
+            manualRun: block.manualRun === true
         }));
         const sel = document.getElementById('final-delimiter-select');
         const custom = document.getElementById('final-custom-delimiter-input');
@@ -752,6 +828,7 @@ class BlockApp {
                 id: this.genId(),
                 type: blockData.type,
                 params: blockData.params || {},
+                manualRun: blockData.manualRun === true,
                 value: blockData.type === 'source' ? currentSourceValue : null
             };
         });
@@ -1077,6 +1154,7 @@ class BlockApp {
             id: id,
             type: type,
             params: type === 'source' ? { delimiter: '\\n' } : {},
+            manualRun: toolDef ? toolDef.manualRun === true : false,
             value: type === 'source' ? (localStorage.getItem('strings_last_source') || defaultSourceText) : null
         };
 
@@ -1175,7 +1253,7 @@ class BlockApp {
         if (!this.container) return;
         this.container.innerHTML = '';
 
-        const hasManual = this.chain.some(b => b.params && b.params.manualRun === true);
+        const hasManual = this.chain.some(b => b.manualRun === true);
         const runBtn = document.getElementById('run-manual-btn');
         if (runBtn) {
             runBtn.style.display = hasManual ? 'inline-block' : 'none';
@@ -1359,10 +1437,6 @@ class BlockApp {
 
         const toolDef = isSource ? { title: i18n.t('input_data'), icon: 'fas fa-file-alt' } : TOOLS.find(t => t.id === block.type);
 
-        if (toolDef && !isSource && !toolDef.params.some(p => p.id === 'manualRun')) {
-            toolDef.params.push({ id: 'manualRun', type: 'checkbox', label: 'tool_llm_manual_run', value: false });
-        }
-
         const wrapper = document.createElement('div');
         wrapper.className = 'block-wrapper';
         wrapper.id = `wrapper-${block.id}`;
@@ -1469,6 +1543,7 @@ class BlockApp {
             addBelowBtn.title = i18n.t('add_block_below');
             addBelowBtn.onclick = () => this.openToolModal(index + 1);
             actions.appendChild(addBelowBtn);
+
 
             const delBtn = document.createElement('button');
             delBtn.className = 'icon-btn delete';
@@ -1677,9 +1752,6 @@ class BlockApp {
                         inputField.checked = currentVal;
                         inputField.addEventListener('change', (e) => {
                             block.params[param.id] = e.target.checked;
-                            if (param.id === 'manualRun') {
-                                this.reRenderAll();
-                            }
                             this.runChain();
                             this.isModified = true;
                         });
@@ -1719,12 +1791,6 @@ class BlockApp {
             stats.id = `stats-${block.id}`;
             stats.style.marginTop = '10px';
 
-            const manualBtn = document.createElement('button');
-            manualBtn.className = 'btn-run-manual always-active';
-            manualBtn.style.display = block.params.manualRun ? 'block' : 'none';
-            manualBtn.innerHTML = `<i class="fas fa-play"></i> ${i18n.t('tool_llm_run_btn')}`;
-            manualBtn.onclick = () => this.runChain(block.id);
-            content.appendChild(manualBtn);
 
             content.appendChild(stats);
         }
@@ -1742,7 +1808,7 @@ class BlockApp {
         let currentLines = [];
         let globalDelimiter = '\n';
 
-        const manualBlocks = this.chain.filter(b => b.params && b.params.manualRun === true);
+        const manualBlocks = this.chain.filter(b => b.manualRun === true);
         const hasManual = manualBlocks.length > 0;
 
         let manualBlockReached = false;
@@ -1766,9 +1832,9 @@ class BlockApp {
                 const toolDef = TOOLS.find(t => t.id === block.type);
 
                 if (toolDef) {
-                    if (block.params.manualRun === true) manualBlockReached = true;
+                    if (block.manualRun === true) manualBlockReached = true;
 
-                    if (hasManual && manualBlockReached && !forceManual) {
+                    if (manualBlockReached && !forceManual) {
                         if (statsDiv) statsDiv.innerHTML = `<span class="badge" style="background:var(--gray-light); color:var(--dark)">${i18n.t('tool_llm_waiting_manual') || 'Waiting for manual run...'}</span>`;
                         currentLines = [];
                         break;
@@ -2052,3 +2118,227 @@ window.onclick = function (event) {
         app.closeToolModal();
     }
 }
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const aiBtn = document.getElementById('ai-assistant-btn');
+    const aiSidebar = document.getElementById('ai-sidebar');
+    const aiCloseBtn = document.getElementById('close-ai-sidebar-btn');
+    const aiInput = document.getElementById('ai-prompt-input');
+    const aiSendBtn = document.getElementById('ai-send-btn');
+    const aiChatContainer = document.getElementById('ai-chat-container');
+
+    let chatHistory = [];
+    let originalChain = null;
+    let isProcessing = false;
+
+    // Initialize chat
+    function initChat() {
+        aiChatContainer.innerHTML = '';
+        chatHistory = [];
+        addWelcomeMessage();
+    }
+
+    function addWelcomeMessage() {
+        const welcomeMessage = {
+            type: 'assistant',
+            content: i18n.t('ai_welcome_message') || 'Привет! Я AI помощник для создания цепочек обработки данных. Опишите, что вы хотите сделать с вашими данными.',
+            timestamp: new Date()
+        };
+        chatHistory.push(welcomeMessage);
+        renderMessage(welcomeMessage);
+    }
+
+    function renderMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `ai-message ${message.type}`;
+
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = 'ai-message-bubble';
+        bubbleDiv.textContent = message.content;
+
+        // clickable support
+        if (message.clickable && typeof message.onClick === 'function') {
+            bubbleDiv.style.cursor = 'pointer';
+            bubbleDiv.style.textDecoration = 'underline';
+            bubbleDiv.addEventListener('click', message.onClick);
+        }
+
+        messageDiv.appendChild(bubbleDiv);
+        aiChatContainer.appendChild(messageDiv);
+
+        // Scroll to bottom
+        aiChatContainer.scrollTop = aiChatContainer.scrollHeight;
+    }
+
+    function addSaveIndicator(chainSnapshot) {
+        const indicatorDiv = document.createElement('div');
+        indicatorDiv.className = 'ai-save-indicator';
+        indicatorDiv.innerHTML = '<i class="fas fa-save"></i> ' + (i18n.t('chain_saved') || 'Цепочка сохранена');
+        indicatorDiv.title = i18n.t('chain_saved_click') || 'Нажмите, чтобы откатить';
+        indicatorDiv.style.cursor = 'pointer';
+        indicatorDiv.addEventListener('click', () => {
+            if (window.app && chainSnapshot) {
+                window.app.loadChainConfig(chainSnapshot, false);
+                window.app.showToast(i18n.t('chain_reverted') || 'Цепочка восстановлена');
+            }
+        });
+        aiChatContainer.appendChild(indicatorDiv);
+
+        // Scroll to bottom
+        aiChatContainer.scrollTop = aiChatContainer.scrollHeight;
+
+        // do NOT auto-remove; stays until next save or manual click
+    }
+
+    function updateSendButton() {
+        const hasText = aiInput.value.trim().length > 0;
+        aiSendBtn.disabled = !hasText || isProcessing;
+    }
+
+    if (aiBtn) {
+        aiBtn.addEventListener('click', () => {
+            aiSidebar.classList.add('active');
+            if (chatHistory.length === 0) {
+                initChat();
+            }
+            setTimeout(() => aiInput.focus(), 100);
+        });
+    }
+
+    if (aiCloseBtn) {
+        aiCloseBtn.addEventListener('click', () => {
+            aiSidebar.classList.remove('active');
+        });
+    }
+
+    // Close on clicking outside
+    window.addEventListener('click', (event) => {
+        if (event.target === aiSidebar) {
+            aiSidebar.classList.remove('active');
+        }
+    });
+
+    // Input handling
+    if (aiInput) {
+        aiInput.addEventListener('input', updateSendButton);
+        aiInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!aiSendBtn.disabled) {
+                    aiSendBtn.click();
+                }
+            }
+        });
+    }
+
+    if (aiSendBtn) {
+        aiSendBtn.addEventListener('click', async () => {
+            const prompt = aiInput.value.trim();
+            if (!prompt || isProcessing) return;
+
+            isProcessing = true;
+            updateSendButton();
+
+            // Add user message to chat – show collapsible prompt
+            const userMessage = {
+                type: 'user',
+                content: i18n.t('ai_prompt_sent') || '[Запрос] (нажмите, чтобы просмотреть)',
+                full: prompt,
+                timestamp: new Date(),
+                clickable: true,
+                onClick: function() {
+                    const bubble = this._bubble;
+                    if (bubble.textContent === userMessage.content) {
+                        bubble.textContent = userMessage.full;
+                    } else {
+                        bubble.textContent = userMessage.content;
+                    }
+                }
+            };
+            chatHistory.push(userMessage);
+            renderMessage(userMessage);
+
+            // Clear input
+            aiInput.value = '';
+
+            // Auto-save current chain
+            if (window.app) {
+                originalChain = window.app.getChainConfig();
+                // Save snapshot and show clickable indicator
+                addSaveIndicator(originalChain);
+            }
+            // Add thinking indicator
+            const thinkingMessage = {
+                type: 'assistant',
+                content: i18n.t('ai_thinking') || 'Думаю...',
+                timestamp: new Date(),
+                isThinking: true
+            };
+            chatHistory.push(thinkingMessage);
+            renderMessage(thinkingMessage);
+
+            try {
+                const agent = new OptimizedAIAgent();
+                const currentChain = window.app ? window.app.getChainConfig() : [];
+                const result = await agent.run(prompt, currentChain);
+
+                // Remove thinking message
+                chatHistory.pop();
+                const thinkingDiv = aiChatContainer.lastElementChild;
+                if (thinkingDiv && thinkingDiv.classList.contains('ai-message') && thinkingDiv.classList.contains('assistant')) {
+                    thinkingDiv.remove();
+                }
+
+                if (result.status === "success") {
+                    const successMessage = {
+                        type: 'assistant',
+                        content: result.message,
+                        timestamp: new Date(),
+                        clickable: !!(window.app && result.chain),
+                        onClick: () => {
+                            if (window.app && result.chain) {
+                                window.app.loadChainConfig(result.chain, false);
+                            }
+                        }
+                    };
+                    chatHistory.push(successMessage);
+                    renderMessage(successMessage);
+
+                    if (window.app && result.chain) {
+                        window.app.loadChainConfig(result.chain, false);
+                    }
+                } else {
+                    const errorMessage = {
+                        type: 'assistant',
+                        content: `❌ ${result.message}`
+                    };
+                    chatHistory.push(errorMessage);
+                    renderMessage(errorMessage);
+                }
+            } catch (e) {
+                // Remove thinking message
+                chatHistory.pop();
+                const thinkingDiv = aiChatContainer.lastElementChild;
+                if (thinkingDiv && thinkingDiv.classList.contains('ai-message') && thinkingDiv.classList.contains('assistant')) {
+                    thinkingDiv.remove();
+                }
+
+                const errorMessage = {
+                    type: 'assistant',
+                    content: `❌ ${i18n.t('ai_error') || 'Произошла ошибка'}: ${e.message}`,
+                    timestamp: new Date()
+                };
+                chatHistory.push(errorMessage);
+                renderMessage(errorMessage);
+            } finally {
+                isProcessing = false;
+                updateSendButton();
+            }
+        });
+    }
+
+    // Initialize
+    updateSendButton();
+});
+

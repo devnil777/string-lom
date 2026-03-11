@@ -8,46 +8,9 @@
     <meta name="description" data-i18n="app_description"
         content="StringLOM — визуальный конвейер для текста. Цепочки блоков: Regex, JSON, CSV, сортировка. Результат мгновенно, 100% в браузере, без сервера. drag&drop, приватно, без установки">
 
+    
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://devnil777.github.io/string-lom/">
-    <meta property="og:title" content="StringLOM — Визуальный конструктор текстовых цепочек">
-    <meta property="og:description"
-        content="StringLOM — визуальный конвейер для текста. Цепочки блоков: Regex, JSON, CSV, сортировка. Результат мгновенно, 100% в браузере.">
-    <meta property="og:image" content="https://devnil777.github.io/string-lom/assets/web-app-manifest-512x512.png">
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://devnil777.github.io/string-lom/">
-    <meta property="twitter:title" content="StringLOM — Визуальный конструктор текстовых цепочек">
-    <meta property="twitter:description"
-        content="StringLOM — визуальный конвейер для текста. Цепочки блоков: Regex, JSON, CSV, сортировка. Результат мгновенно, 100% в браузере.">
-    <meta property="twitter:image" content="https://devnil777.github.io/string-lom/assets/web-app-manifest-512x512.png">
-
-
-        <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1KTEQ53CVY"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-        gtag('config', 'G-1KTEQ53CVY');
-    </script>
-    <!-- Yandex.Metrika counter -->
-    <script type="text/javascript">
-        (function (m, e, t, r, i, k, a) {
-            m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) };
-            m[i].l = 1 * new Date();
-            for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
-            k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a)
-        })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=106957105', 'ym');
-        ym(106957105, 'init', { ssr: true, webvisor: true, clickmap: true, ecommerce: "dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce: true, trackLinks: true });
-    </script>
-    <noscript>
-        <div><img src="https://mc.yandex.ru/watch/106957105" style="position:absolute; left:-9999px;" alt="" /></div>
-    </noscript>
-    <!-- /Yandex.Metrika counter -->
+    
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsonpath@1.1.1/jsonpath.min.js"></script>
@@ -151,6 +114,12 @@
                         <span id="workspace-title-text" data-i18n="new_chain">Новая цепочка</span>
                     </div>
                     <div class="actions">
+                        <button class="btn-toolbar" id="ai-assistant-btn" tabindex="-1" title="AI помощник" data-i18n-title="ai_assistant_title">
+                            <i class="fas fa-magic"></i> <span data-i18n="ai_assistant">AI помощник</span>
+                        </button>
+                        <button class="btn-toolbar primary execute" id="run-manual-btn" style="display: none;" title="F9">
+                            <i class="fas fa-play"></i> <span data-i18n="run_chain">Выполнить</span>
+                        </button>
                         <button class="btn-toolbar" id="save-chain-btn" tabindex="-1"
                             title="Сохранить текущую цепочку (Alt + S)" data-i18n-title="save_title"><i class="fas fa-save"></i> <span data-i18n="save">Сохранить</span></button>
                         <button class="btn-toolbar" id="share-chain-btn" tabindex="-1" title="Поделиться цепочкой" data-i18n-title="share_title"><i
@@ -158,9 +127,6 @@
                         <button class="btn-toolbar" id="copy-chain-btn" tabindex="-1"
                             title="Экспортировать настройки цепочки (Alt + E)" data-i18n-title="export_title"><i class="fas fa-file-export"></i>
                             <span data-i18n="export">Экспортировать</span></button>
-                        <button class="btn-toolbar primary" id="run-manual-btn" style="display: none;">
-                            <i class="fas fa-play"></i> <span data-i18n="run_chain">Запустить</span>
-                        </button>
                     </div>
                 </div>
 
@@ -235,6 +201,27 @@
         </div>
     </div>
 
+    <!-- AI ASSISTANT SIDEBAR -->
+    <div id="ai-sidebar" class="ai-sidebar">
+        <div class="ai-sidebar-header">
+            <div class="ai-sidebar-title">
+                <i class="fas fa-magic"></i> <span data-i18n="ai_assistant">AI помощник</span>
+            </div>
+            <button class="ai-sidebar-close" id="close-ai-sidebar-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="ai-chat-container" id="ai-chat-container">
+            <!-- Chat messages will be added here -->
+        </div>
+        <div class="ai-input-container">
+            <textarea id="ai-prompt-input" placeholder="Опишите, какую цепочку обработки данных вы хотите создать или изменить..." data-i18n="ai_prompt_placeholder"></textarea>
+            <button class="ai-send-btn" id="ai-send-btn" disabled>
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- DIALOG MODAL (Alert/Confirm/Prompt) -->
     <div id="dialog-modal" class="modal-overlay">
         <div class="modal dialog">
@@ -251,8 +238,8 @@
         </div>
     </div>
 
+    <script src="js/ai-agent.js"></script>
     <script src="js/ui.js"></script>
-
 </body>
 
 </html>

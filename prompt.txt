@@ -1,0 +1,188 @@
+Задача: реализовать генерацию цепочек с помощью встроенного AI-агента
+Пользователь описывает простыми словами, что ему надо, AI автоматически формирует новую или изменяет текущею цепочку блоков
+
+Добавь кнопку на панеле кнопок «AI помощник» 
+По нажатию кнопки, будет появляться окно, для ввода пользовательского prompt
+По нажатию выполнить будет запускаться логика AI агента
+Результатом AI агента, может быть два состояния:
+- текст с результатом выполнения, и обновленная цепочка блоков
+- или сообщение от модели почему она не смогла это сделать, или системная ошибка в процессе работы модели
+
+Пользователь может, не закрывая окно просмотреть цепочку, которая получилась, и закрыть окно. Или отменить изменения, вернуть цепочку к первоначальному виду
+
+Для работы с AI используется текущий механизм LLM в проекте (сейчас это модель qwen в будущем могут быть и другие)
+
+Всю логику AI агента следует вынести в отдельный js файл. Вся логика AI агента реализуется на js. Общие вещи выносятся в класс провайдеры. В последнею очередь изменяй proxy 
+
+Логика работы AI агента, на мета языке python-like
+lass OptimizedAIAgent:
+    def __init__(self):
+        self.max_cycles = 3
+        self.chat_history = []
+        # Схема для Шага 1 и Шага 3 (Исправление)
+        self.generation_schema = GenerationSchema 
+        # Схема для Шага 2 (Верификация)
+        self.verification_schema = VerificationSchema
+
+    def run(self, user_task):
+        """
+        Основной цикл работы агента
+        """
+        # Инициализация истории чата (Запись 1)
+        # Добавляем системную инструкцию и задачу пользователя
+        self.chat_history.append({
+            "role": "system", 
+            "content": self.get_system_instruction() # Роли, инструменты, описание структур
+        })
+        self.chat_history.append({
+            "role": "user", 
+            "content": self.create_start_prompt(user_task) # Промт 1
+        })
+
+        last_error_description = None
+        final_result = None
+
+        for cycle in range(self.max_cycles):
+            print(f"--- Цикл {cycle + 1} ---")
+
+            # ---------------------------------------------------------
+            # ШАГ 1: Генерация структуры и тестовых данных (JSON)
+            # ---------------------------------------------------------
+            # Если это не первая попытка, используем облегченный промт (Промт 3)
+            if cycle > 0:
+                fix_prompt = self.create_fix_prompt(last_error_description)
+                self.chat_history.append({"role": "user", "content": fix_prompt})
+            
+            # Вызов LLM с Native JSON Mode (Garanteed Valid JSON)
+            # Возвращает объект, соответствующий generation_schema
+            generation_result = self.call_llm_with_schema(
+                messages=self.chat_history, 
+                schema=self.generation_schema
+            )
+            
+            # Добавляем ответ модели в историю
+            self.chat_history.append({
+                "role": "assistant", 
+                "content": generation_result.model_dump_json()
+            })
+
+            # ---------------------------------------------------------
+            # ШАГ 2: Выполнение логики приложения (Code Execution)
+            # ---------------------------------------------------------
+            # Быстро и безопасно (в песочнице)
+            execution_output = self.execute_local_logic(
+                structure=generation_result.logic_structure,
+                test_data=generation_result.test_cases
+            )
+
+            # ---------------------------------------------------------
+            # ШАГ 3: Верификация (JSON)
+            # ---------------------------------------------------------
+            # Промт 2: Сравнение задачи, тестов и результата
+            verification_prompt = self.create_verification_prompt(
+                user_task=user_task,
+                test_cases=generation_result.test_cases,
+                execution_output=execution_output
+            )
+            
+            # Вызов LLM для проверки (тоже возвращает JSON)
+            verification_result = self.call_llm_with_schema(
+                messages=[{"role": "user", "content": verification_prompt}], # Можно не слать всю историю для экономии
+                schema=self.verification_schema
+            )
+
+            # ---------------------------------------------------------
+            # АНАЛИЗ ВЕРИФИКАЦИИ
+            # ---------------------------------------------------------
+            if verification_result.status == "ok":
+                # Успех
+                final_result = {
+                    "status": "success",
+                    "structure": generation_result,
+                    "execution_output": execution_output,
+                    "verification_summary": verification_result.summary
+                }
+                break
+            else:
+                # Ошибка
+                last_error_description = verification_result.error_message
+                print(f"Ошибка верификации: {last_error_description}")
+                
+                # Если это была последняя попытка
+                if cycle == self.max_cycles - 1:
+                    final_result = {
+                        "status": "failed",
+                        "reason": "Превышено количество попыток исправления",
+                        "last_error": last_error_description
+                    }
+                # Иначе цикл продолжается (возврат к Шагу 1 с облегченным промтом)
+
+        # ---------------------------------------------------------
+        # ФИНАЛ: Резюме для пользователя
+        # ---------------------------------------------------------
+        user_summary = self.generate_user_summary(final_result)
+        return user_summary
+
+    # --- Методы формирования промтов (без конкретного текста) ---
+
+    def create_start_prompt(self, user_task):
+        """
+        Промт 1: Стартовый
+        - Указание роли
+        - Пользовательский ввод
+        - Описание доступных инструментов и структур
+        - Описание выходного JSON (2 блока: структура и тесты)
+        """
+        pass
+
+    def create_verification_prompt(self, user_task, test_cases, execution_output):
+        """
+        Промт 2: Верификация
+        - Вход: Исходная задача, Тестовые данные, Результат выполнения
+        - Выход: JSON (status: 'ok' | 'error', message: '...', summary: '...')
+        """
+        pass
+
+    def create_fix_prompt(self, error_description):
+        """
+        Промт 3: Облегченный запрос на исправление
+        - Без повторного определения моделей данных (используется контекст/система)
+        - Содержит описание ошибки из Шага 3
+        - Требует исправленный JSON
+        """
+        pass
+
+    def generate_user_summary(self, final_result):
+        """
+        Формирует итоговый ответ для пользователя
+        - Если успех: Структура готова + итог
+        - Если ошибка: Описание почему не получилось
+        """
+        pass
+
+    # --- Технические заглушки ---
+
+    def call_llm_with_schema(self, messages, schema):
+        """Вызов LLM с принудительной схемой (Native JSON Mode)"""
+        pass
+
+    def execute_local_logic(self, structure, test_data):
+        """Безопасное выполнение логики на стороне приложения"""
+        pass
+
+    def get_system_instruction(self):
+        """Глобальная системная инструкция (роли, правила безопасности)"""
+        pass
+
+
+
+Требования к промтам:
+Результат работы всех промтов — это всегда JSON
+
+1.	start_prompt – включает в себя пользовательский ввод, инструкции что это AI агент, информацию о всех блоках. Т.е. включи в промт полное описание каждого блока, структуру данных для каждого блока, явно укажи что на выходе должен быть Json который состоит из двух блоков, данные для проверки, и структура цепочки (должен быть пример) 
+
+2.	verification_prompt должен вернуть информацию, что все хорошо, или выдать ошибка для выполнения следующего цикла
+
+3.	Если не получилось выполнить задание опиши почему
+
+
