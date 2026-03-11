@@ -78,9 +78,12 @@ If you create a new block, include the "new_block" object in your JSON response.
 Remember, the "new_block" is optional. Only use it when required.`;
     }
 
-    async run(user_task, current_chain) {
+    async run(user_task, current_chain, allow_new_blocks, on_step) {
+        this.on_step = on_step;
         this.chat_history = [];
         
+        this.on_step_update('start', 'Starting AI agent...');
+
         this.chat_history.push({
             "role": "system", 
             "content": this.get_system_instruction()
@@ -94,10 +97,13 @@ Remember, the "new_block" is optional. Only use it when required.`;
         let final_result = null;
 
         for (let cycle = 0; cycle < this.max_cycles; cycle++) {
+            this.on_step_update('cycle_start', `Starting generation cycle ${cycle + 1}...`, { current: cycle + 1, max: this.max_cycles });
+
             console.log(`--- Main Cycle ${cycle + 1} ---`);
             let generation_result = null;
 
             try {
+                this.on_step_update('generation_start', 'Generating processing logic...');
                 generation_result = await this.provider.llmClient.callLLMWithSchema(
                     this.chat_history, 
                     this.generation_schema
@@ -109,6 +115,7 @@ Remember, the "new_block" is optional. Only use it when required.`;
                 });
             } catch (e) {
                 const err = `LLM generation failed: ${e.message}`;
+                this.on_step_update('generation_error', 'Error generating structure.');
                 if (cycle === this.max_cycles - 1) {
                     final_result = { status: "failed", reason: "Error generating structure", last_error: err };
                     break;
@@ -119,16 +126,18 @@ Remember, the "new_block" is optional. Only use it when required.`;
 
             // Step A: New Block Verification Loop
             if (generation_result.new_block) {
+                this.on_step_update('block_verification_start', 'New block detected, starting verification...');
                 const block_ok = await this.verifyAndFixNewBlock(generation_result.new_block, cycle);
                 if (!block_ok) {
                     // LLM failed to fix the block, we continue the main cycle to try generating from scratch or fallback
                     if (cycle === this.max_cycles - 1) {
-                        final_result = { status: "failed", reason: "Could not create a working new block", last_error: "Block verification failed" };
+                        final_result = { status: "failed", reason: "Could not create a working new block.", last_error: "Block verification failed" };
                         break;
                     }
                     this.chat_history.push({"role": "user", "content": "The custom block failed verification and couldn't be fixed. Please try generating a different block or solving the task using existing blocks."});
                     continue;
                 }
+                this.on_step_update('block_verification_success', 'New block verified and added to tools.');
             }
 
             // If we are here, new_block is either null or successfully verified and registered
@@ -136,6 +145,7 @@ Remember, the "new_block" is optional. Only use it when required.`;
             const test_cases = generation_result.test_cases || [];
             const logic_structure = generation_result.logic_structure || generation_result.blocks || [];
             
+            this.on_step_update('execution_start', 'Executing generated logic with test cases...');
             const execution_output = await this.provider.executeLocalLogic(
                 logic_structure,
                 test_cases
@@ -149,6 +159,7 @@ Remember, the "new_block" is optional. Only use it when required.`;
             
             let verification_result;
             try {
+                this.on_step_update('verification_start', 'Verifying execution results...');
                 verification_result = await this.provider.llmClient.callLLMWithSchema(
                     [
                         { "role": "system", "content": "You are a verification agent. You MUST output ONLY valid JSON." },
@@ -158,6 +169,7 @@ Remember, the "new_block" is optional. Only use it when required.`;
                 );
             } catch (e) {
                 const err = `Verification failed: ${e.message}`;
+                this.on_step_update('verification_error', 'Error during verification.');
                 if (cycle === this.max_cycles - 1) {
                     final_result = { status: "failed", reason: "Error in verification", last_error: err };
                     break;
@@ -167,15 +179,17 @@ Remember, the "new_block" is optional. Only use it when required.`;
             }
 
             if (verification_result.status === "ok") {
+                this.on_step_update('verification_success', 'Chain verification successful!');
                 final_result = {
                     status: "success",
-                    structure: logic_structure,
+                    chain: logic_structure,
                     execution_output: execution_output,
-                    verification_summary: verification_result.summary
+                    message: verification_result.summary
                 };
                 break;
             } else {
                 const err = verification_result.message || "Unknown error during verification";
+                this.on_step_update('verification_failed', `Verification failed: ${err}`);
                 console.log(`Main Verification error: ${err}`);
                 
                 if (cycle === this.max_cycles - 1) {
@@ -189,7 +203,7 @@ Remember, the "new_block" is optional. Only use it when required.`;
                 this.chat_history.push({"role": "user", "content": this.create_fix_prompt(err)});
             }
         }
-
+        this.on_step_update('end', 'Processing complete.');
         return this.generate_user_summary(final_result);
     }
 

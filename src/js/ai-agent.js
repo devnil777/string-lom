@@ -79,8 +79,17 @@ class OptimizedAIAgent {
         };
     }
 
-    async run(user_task, current_chain) {
+    on_step_update(i18n_key, message, data = {}) {
+        if (this.on_step) {
+            this.on_step({ i18n_key, message, data });
+        }
+    }
+
+    async run(user_task, current_chain, allow_new_blocks = false, on_step = null) {
+        this.on_step = on_step;
         this.chat_history = [];
+        
+        this.on_step_update('start', 'Starting AI agent...');
         
         this.chat_history.push({
             "role": "system", 
@@ -96,7 +105,7 @@ class OptimizedAIAgent {
         let final_result = null;
 
         for (let cycle = 0; cycle < this.max_cycles; cycle++) {
-            console.log(`--- Cycle ${cycle + 1} ---`);
+            this.on_step_update('cycle_start', `Starting generation cycle ${cycle + 1}...`, { current: cycle + 1, max: this.max_cycles });
 
             // STEP 1: Generation
             if (cycle > 0) {
@@ -104,6 +113,8 @@ class OptimizedAIAgent {
                 this.chat_history.push({"role": "user", "content": fix_prompt});
             }
             
+            this.on_step_update('generation_start', 'Generating processing logic...');
+
             let generation_result;
             try {
                 generation_result = await this.provider.llmClient.callLLMWithSchema(
@@ -116,6 +127,7 @@ class OptimizedAIAgent {
                     "content": JSON.stringify(generation_result)
                 });
             } catch (e) {
+                this.on_step_update('generation_error', 'Error generating structure.');
                 last_error_description = `LLM generation failed: ${e.message}`;
                 if (cycle === this.max_cycles - 1) {
                     final_result = { status: "failed", reason: "Error generating structure", last_error: last_error_description };
@@ -124,6 +136,7 @@ class OptimizedAIAgent {
             }
 
             // STEP 2: Execution
+            this.on_step_update('execution_start', 'Executing generated logic with test cases...');
             const test_cases = generation_result.test_cases || [];
             const logic_structure = generation_result.logic_structure || generation_result.blocks || [];
             
@@ -133,6 +146,7 @@ class OptimizedAIAgent {
             );
 
             // STEP 3: Verification
+            this.on_step_update('verification_start', 'Verifying execution results...');
             const verification_prompt = this.create_verification_prompt(
                 user_task,
                 test_cases,
@@ -149,6 +163,7 @@ class OptimizedAIAgent {
                     this.verification_schema
                 );
             } catch (e) {
+                this.on_step_update('verification_error', 'Error during verification.');
                 last_error_description = `Verification failed: ${e.message}`;
                 if (cycle === this.max_cycles - 1) {
                     final_result = { status: "failed", reason: "Error in verification", last_error: last_error_description };
@@ -158,6 +173,7 @@ class OptimizedAIAgent {
 
             // ANALYSIS
             if (verification_result.status === "ok") {
+                this.on_step_update('verification_success', 'Chain verification successful!');
                 final_result = {
                     status: "success",
                     structure: logic_structure,
@@ -166,6 +182,7 @@ class OptimizedAIAgent {
                 };
                 break;
             } else {
+                this.on_step_update('verification_failed', verification_result.message || "Unknown error during verification");
                 last_error_description = verification_result.message || "Unknown error during verification";
                 console.log(`Verification error: ${last_error_description}`);
                 
@@ -178,6 +195,8 @@ class OptimizedAIAgent {
                 }
             }
         }
+        
+        this.on_step_update('end', 'Processing complete.');
 
         return this.generate_user_summary(final_result);
     }
@@ -286,3 +305,4 @@ Please fix the logic_structure and return the corrected JSON object containing "
         }
     }
 }
+

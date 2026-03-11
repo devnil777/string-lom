@@ -62,6 +62,21 @@ class BlockApp {
         const llmSettingsBtn = document.getElementById('llm-settings-btn');
         if (llmSettingsBtn) llmSettingsBtn.onclick = () => this.showLLMSettings();
 
+        const aiAssistantBtn = document.getElementById('ai-assistant-btn');
+        const aiSidebar = document.getElementById('ai-sidebar');
+        const aiCloseBtn = document.getElementById('close-ai-sidebar-btn');
+        if (aiAssistantBtn && aiSidebar) {
+            aiAssistantBtn.onclick = () => {
+                aiSidebar.classList.add('active');
+                window.AIAgentChat.init();
+            };
+        }
+        if (aiCloseBtn && aiSidebar) {
+            aiCloseBtn.onclick = () => {
+                aiSidebar.classList.remove('active');
+            };
+        }
+
         const langSelect = document.getElementById('lang-select');
         if (langSelect) {
             langSelect.value = i18n.locale;
@@ -2107,245 +2122,152 @@ class BlockApp {
     }
 }
 
-// Init
-const app = new BlockApp();
-window.app = app;
-
-// click outside modal
-window.onclick = function (event) {
-    const m = document.getElementById('tool-modal');
-    if (event.target == m) {
-        app.closeToolModal();
-    }
-}
-
-
+// This will be handled by AIAgentChat
 document.addEventListener('DOMContentLoaded', () => {
-    const aiBtn = document.getElementById('ai-assistant-btn');
-    const aiSidebar = document.getElementById('ai-sidebar');
-    const aiCloseBtn = document.getElementById('close-ai-sidebar-btn');
-    const aiInput = document.getElementById('ai-prompt-input');
-    const aiSendBtn = document.getElementById('ai-send-btn');
-    const aiChatContainer = document.getElementById('ai-chat-container');
+    window.app = new BlockApp();
+});
 
-    let chatHistory = [];
-    let originalChain = null;
-    let isProcessing = false;
-
-    // Initialize chat
-    function initChat() {
-        aiChatContainer.innerHTML = '';
-        chatHistory = [];
-        addWelcomeMessage();
-    }
-
-    function addWelcomeMessage() {
-        const welcomeMessage = {
-            type: 'assistant',
-            content: i18n.t('ai_welcome_message') || 'Привет! Я AI помощник для создания цепочек обработки данных. Опишите, что вы хотите сделать с вашими данными.',
-            timestamp: new Date()
-        };
-        chatHistory.push(welcomeMessage);
-        renderMessage(welcomeMessage);
-    }
-
-    function renderMessage(message) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `ai-message ${message.type}`;
-
-        const bubbleDiv = document.createElement('div');
-        bubbleDiv.className = 'ai-message-bubble';
-        bubbleDiv.textContent = message.content;
-
-        // clickable support
-        if (message.clickable && typeof message.onClick === 'function') {
-            bubbleDiv.style.cursor = 'pointer';
-            bubbleDiv.style.textDecoration = 'underline';
-            bubbleDiv.addEventListener('click', message.onClick);
-        }
-
-        messageDiv.appendChild(bubbleDiv);
-        aiChatContainer.appendChild(messageDiv);
-
-        // Scroll to bottom
-        aiChatContainer.scrollTop = aiChatContainer.scrollHeight;
-    }
-
-    function addSaveIndicator(chainSnapshot) {
-        const indicatorDiv = document.createElement('div');
-        indicatorDiv.className = 'ai-save-indicator';
-        indicatorDiv.innerHTML = '<i class="fas fa-save"></i> ' + (i18n.t('chain_saved') || 'Цепочка сохранена');
-        indicatorDiv.title = i18n.t('chain_saved_click') || 'Нажмите, чтобы откатить';
-        indicatorDiv.style.cursor = 'pointer';
-        indicatorDiv.addEventListener('click', () => {
-            if (window.app && chainSnapshot) {
-                window.app.loadChainConfig(chainSnapshot, false);
-                window.app.showToast(i18n.t('chain_reverted') || 'Цепочка восстановлена');
-            }
-        });
-        aiChatContainer.appendChild(indicatorDiv);
-
-        // Scroll to bottom
-        aiChatContainer.scrollTop = aiChatContainer.scrollHeight;
-
-        // do NOT auto-remove; stays until next save or manual click
-    }
-
-    function updateSendButton() {
-        const hasText = aiInput.value.trim().length > 0;
-        aiSendBtn.disabled = !hasText || isProcessing;
-    }
-
-    if (aiBtn) {
-        aiBtn.addEventListener('click', () => {
-            aiSidebar.classList.add('active');
-            if (chatHistory.length === 0) {
-                initChat();
-            }
-            setTimeout(() => aiInput.focus(), 100);
-        });
-    }
-
-    if (aiCloseBtn) {
-        aiCloseBtn.addEventListener('click', () => {
-            aiSidebar.classList.remove('active');
-        });
-    }
-
-    // Close on clicking outside
-    window.addEventListener('click', (event) => {
-        if (event.target === aiSidebar) {
-            aiSidebar.classList.remove('active');
-        }
-    });
-
-    // Input handling
-    if (aiInput) {
-        aiInput.addEventListener('input', updateSendButton);
-        aiInput.addEventListener('keydown', (e) => {
+// --- AI CHAT UI MANAGER ---
+window.AIAgentChat = {
+    chatContainer: null,
+    promptInput: null,
+    sendBtn: null,
+    chatHistory: [],
+    isProcessing: false,
+    originalChain: null,
+    init() {
+        this.chatContainer = document.getElementById('ai-chat-container');
+        this.promptInput = document.getElementById('ai-prompt-input');
+        this.sendBtn = document.getElementById('ai-send-btn');
+        this.chatContainer.innerHTML = '';
+        this.chatHistory = [];
+        this.addMessage('welcome');
+        this.promptInput.addEventListener('input', this.updateSendButton.bind(this));
+        this.promptInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                if (!aiSendBtn.disabled) {
-                    aiSendBtn.click();
+                if (!this.sendBtn.disabled) {
+                    this.sendBtn.click();
                 }
             }
         });
-    }
-
-    if (aiSendBtn) {
-        aiSendBtn.addEventListener('click', async () => {
-            const prompt = aiInput.value.trim();
-            if (!prompt || isProcessing) return;
-
-            isProcessing = true;
-            updateSendButton();
-
-            // Add user message to chat – show collapsible prompt
-            const userMessage = {
-                type: 'user',
-                content: i18n.t('ai_prompt_sent') || '[Запрос] (нажмите, чтобы просмотреть)',
-                full: prompt,
-                timestamp: new Date(),
-                clickable: true,
-                onClick: function() {
-                    const bubble = this._bubble;
-                    if (bubble.textContent === userMessage.content) {
-                        bubble.textContent = userMessage.full;
-                    } else {
-                        bubble.textContent = userMessage.content;
+        this.sendBtn.onclick = this.handleSend.bind(this);
+        this.originalChain = window.app.getChainConfig();
+        setTimeout(() => this.promptInput.focus(), 100);
+        this.updateSendButton();
+    },
+    updateSendButton() {
+        const hasText = this.promptInput.value.trim().length > 0;
+        this.sendBtn.disabled = !hasText || this.isProcessing;
+    },
+    addMessage(type, content = '', data = {}) {
+        const message = { type, content, data, timestamp: new Date() };
+        this.chatHistory.push(message);
+        this.renderMessage(message);
+    },
+    renderMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `ai-message type-${message.type}`;
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = 'ai-message-bubble';
+        let icon = '';
+        let textContent = message.content;
+        switch (message.type) {
+            case 'welcome':
+                icon = '<i class="fas fa-magic"></i>';
+                textContent = i18n.t('ai_welcome_message_new') || 'Hello! How can I help you build a data processing chain?';
+                break;
+            case 'user':
+                icon = '<i class="fas fa-user-pen"></i>';
+                bubbleDiv.classList.add('collapsible');
+                if (textContent.split('\n').length > 3 || textContent.length > 200) {
+                    bubbleDiv.classList.add('collapsed');
+                }
+                bubbleDiv.onclick = () => bubbleDiv.classList.toggle('collapsed');
+                break;
+            case 'saved':
+                icon = '<i class="fas fa-save"></i>';
+                textContent = i18n.t('chain_saved_message') || 'Chain snapshot saved.';
+                bubbleDiv.classList.add('clickable');
+                bubbleDiv.title = i18n.t('chain_restore_title') || 'Click to restore this version';
+                bubbleDiv.onclick = () => {
+                    if (window.app && message.data.chain) {
+                        window.app.loadChainConfig(message.data.chain, false);
+                        window.app.showToast(i18n.t('chain_reverted') || 'Chain restored');
                     }
-                }
-            };
-            chatHistory.push(userMessage);
-            renderMessage(userMessage);
-
-            // Clear input
-            aiInput.value = '';
-
-            // Auto-save current chain
-            if (window.app) {
-                originalChain = window.app.getChainConfig();
-                // Save snapshot and show clickable indicator
-                addSaveIndicator(originalChain);
-            }
-            // Add thinking indicator
-            const thinkingMessage = {
-                type: 'assistant',
-                content: i18n.t('ai_thinking') || 'Думаю...',
-                timestamp: new Date(),
-                isThinking: true
-            };
-            chatHistory.push(thinkingMessage);
-            renderMessage(thinkingMessage);
-
-            try {
-                let agent;
-                const allowNewBlocks = document.getElementById('ai-allow-new-blocks')?.checked;
-
-                if (allowNewBlocks) {
-                    agent = new CustomBlockAIAgent();
-                } else {
-                    agent = new OptimizedAIAgent();
-                }
-                const currentChain = window.app ? window.app.getChainConfig() : [];
-                const result = await agent.run(prompt, currentChain);
-
-                // Remove thinking message
-                chatHistory.pop();
-                const thinkingDiv = aiChatContainer.lastElementChild;
-                if (thinkingDiv && thinkingDiv.classList.contains('ai-message') && thinkingDiv.classList.contains('assistant')) {
-                    thinkingDiv.remove();
-                }
-
-                if (result.status === "success") {
-                    const successMessage = {
-                        type: 'assistant',
-                        content: result.message,
-                        timestamp: new Date(),
-                        clickable: !!(window.app && result.chain),
-                        onClick: () => {
-                            if (window.app && result.chain) {
-                                window.app.loadChainConfig(result.chain, false);
-                            }
-                        }
-                    };
-                    chatHistory.push(successMessage);
-                    renderMessage(successMessage);
-
-                    if (window.app && result.chain) {
-                        window.app.loadChainConfig(result.chain, false);
-                    }
-                } else {
-                    const errorMessage = {
-                        type: 'assistant',
-                        content: `❌ ${result.message}`
-                    };
-                    chatHistory.push(errorMessage);
-                    renderMessage(errorMessage);
-                }
-            } catch (e) {
-                // Remove thinking message
-                chatHistory.pop();
-                const thinkingDiv = aiChatContainer.lastElementChild;
-                if (thinkingDiv && thinkingDiv.classList.contains('ai-message') && thinkingDiv.classList.contains('assistant')) {
-                    thinkingDiv.remove();
-                }
-
-                const errorMessage = {
-                    type: 'assistant',
-                    content: `❌ ${i18n.t('ai_error') || 'Произошла ошибка'}: ${e.message}`,
-                    timestamp: new Date()
                 };
-                chatHistory.push(errorMessage);
-                renderMessage(errorMessage);
-            } finally {
-                isProcessing = false;
-                updateSendButton();
+                break;
+            case 'success':
+                icon = '<i class="fas fa-check-circle"></i>';
+                textContent = i18n.t('ai_success_message') || 'Chain updated successfully.';
+                bubbleDiv.classList.add('clickable');
+                bubbleDiv.title = i18n.t('chain_show_title') || 'Click to view the created chain';
+                bubbleDiv.onclick = () => {
+                    if (window.app && message.data.chain) {
+                        window.app.loadChainConfig({ blocks: message.data.chain });
+                    }
+                };
+                break;
+            case 'error':
+                icon = '<i class="fas fa-exclamation-triangle"></i>';
+                textContent = `${i18n.t('ai_error_prefix') || 'Error'}: ${message.content}`;
+                break;
+            case 'thinking':
+                icon = '<i class="fas fa-brain"></i>';
+                textContent = `<div class="typing"><span></span><span></span><span></span></div>`;
+                break;
+        }
+        bubbleDiv.innerHTML = `${icon} <div class="ai-message-content">${textContent}</div>`;
+        messageDiv.appendChild(bubbleDiv);
+        this.chatContainer.appendChild(messageDiv);
+        this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+        return messageDiv;
+    },
+    async handleSend() {
+        const userInput = this.promptInput.value.trim();
+        if (!userInput) return;
+        this.isProcessing = true;
+        this.updateSendButton();
+        this.addMessage('user', userInput);
+        const thinkingDiv = this.renderMessage({ type: 'thinking' });
+        this.promptInput.value = '';
+        try {
+            let agent;
+            const allowNewBlocks = document.getElementById('ai-allow-new-blocks')?.checked;
+            
+            if (allowNewBlocks) {
+                agent = new CustomBlockAIAgent();
+            } else {
+                agent = new OptimizedAIAgent();
             }
-        });
-    }
 
-    // Initialize
-    updateSendButton();
+            const currentChain = window.app.getChainConfig();
+            this.addMessage('saved', '', { chain: this.originalChain });
+            this.originalChain = window.app.getChainConfig();
+            const result = await agent.run(userInput, currentChain, allowNewBlocks, (step) => {
+                const thinkingContent = thinkingDiv.querySelector('.ai-message-content');
+                if (thinkingContent) {
+                    thinkingContent.textContent = i18n.t(step.i18n_key) || step.message;
+                }
+            });
+            thinkingDiv.remove();
+            if (result.status === 'success') {
+                this.addMessage('success', result.message, { chain: result.chain });
+            } else {
+                this.addMessage('error', result.message);
+            }
+        } catch (error) {
+            console.error('AI Agent Error:', error);
+            thinkingDiv.remove();
+            this.addMessage('error', error.message);
+        } finally {
+            this.isProcessing = false;
+            this.updateSendButton();
+        }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new BlockApp();
 });
 
