@@ -334,29 +334,37 @@ Respond ONLY with the JSON object for the updated "new_block".`;
             custom: true // Flag as user/AI created
         };
 
-        // Add to global TOOLS list if not exists
-        const toolsList = typeof window !== 'undefined' && window.TOOLS ? window.TOOLS : (typeof TOOLS !== 'undefined' ? TOOLS : []);
-        const existingIndex = toolsList.findIndex(t => t.id === toolDef.id);
+        // Ensure we're working with the global TOOLS array (defined in tools.js)
+        // Both TOOLS and TOOL_CATEGORIES are global const arrays that can be modified
+        const toolsArray = typeof TOOLS !== 'undefined' ? TOOLS : [];
+        const existingIndex = toolsArray.findIndex(t => t.id === toolDef.id);
+        
         if (existingIndex >= 0) {
-            toolsList[existingIndex] = toolDef;
+            toolsArray[existingIndex] = toolDef;
         } else {
-            toolsList.push(toolDef);
+            toolsArray.push(toolDef);
         }
+        console.log(`Custom block registered: ${toolDef.id}. Total tools: ${toolsArray.length}`);
 
-        // Add to TOOL_CATEGORIES
-        const categoriesList = typeof window !== 'undefined' && window.TOOL_CATEGORIES ? window.TOOL_CATEGORIES : (typeof TOOL_CATEGORIES !== 'undefined' ? TOOL_CATEGORIES : []);
-        let aiCat = categoriesList.find(c => c.title === 'AI/пользователь' || c.id === 'ai_custom');
+        // Add to TOOL_CATEGORIES (defined in categories.js)
+        const categoriesArray = typeof TOOL_CATEGORIES !== 'undefined' ? TOOL_CATEGORIES : [];
+        let aiCat = categoriesArray.find(c => c.title === 'AI/пользователь' || c.id === 'ai_custom');
+        
         if (!aiCat) {
             aiCat = { id: 'ai_custom', title: 'AI/пользователь', tools: [] };
-            categoriesList.push(aiCat);
+            categoriesArray.push(aiCat);
         }
+        
         if (!aiCat.tools.includes(toolDef.id)) {
             aiCat.tools.push(toolDef.id);
         }
+        console.log(`Block added to category. Category tools: ${aiCat.tools.length}`);
 
-        // Trigger a UI update for the tool list
+        // Force UI update with a small delay to ensure state is consistent
         if (typeof window !== 'undefined' && window.app && typeof window.app.setupModal === 'function') {
+            // Refresh the modal immediately
             window.app.setupModal();
+            console.log('setupModal called after block registration');
         }
     }
 }

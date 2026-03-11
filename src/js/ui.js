@@ -636,6 +636,7 @@ class BlockApp {
     showLLMSettings() {
         const originalSettings = JSON.parse(JSON.stringify(window.llmClient.settings));
         const settings = window.llmClient.settings;
+        let isConfirmed = false;
         const body = document.createElement('div');
         body.innerHTML = `
             <div class="form-group" style="margin-bottom: 15px;">
@@ -717,7 +718,7 @@ class BlockApp {
 
         const cleanup = (restore = false) => {
             window.removeEventListener('llm-authorized', onAuthorized);
-            if (restore) {
+            if (restore && !isConfirmed) {
                 window.llmClient.settings = originalSettings;
             }
         };
@@ -738,6 +739,7 @@ class BlockApp {
                         };
                         window.llmClient.saveSettings(newSettings);
                         this.showToast(i18n.t('saved'));
+                        isConfirmed = true;
                         cleanup();
                     }
                 }
@@ -863,6 +865,8 @@ class BlockApp {
         }
 
         this.reRenderAll();
+        // Refresh the tool modal in case new custom blocks were added by AI
+        this.setupModal('');
         this.isModified = false;
     }
 
@@ -1451,6 +1455,40 @@ class BlockApp {
         const isSource = block.type === 'source';
 
         const toolDef = isSource ? { title: i18n.t('input_data'), icon: 'fas fa-file-alt' } : TOOLS.find(t => t.id === block.type);
+
+        // Fallback if tool definition is not found (e.g., custom block from AI not yet registered)
+        if (!toolDef && !isSource) {
+            console.warn(`Tool definition not found for block type: ${block.type}. Available tools:`, TOOLS.map(t => t.id));
+            // Create a placeholder until the tool is available
+            const placeholder = {
+                title: block.type,
+                icon: 'fas fa-puzzle-piece',
+                description: 'Custom block (loading...)',
+            };
+            // Try to render with placeholder
+            const header = document.createElement('div');
+            header.className = 'block-header';
+            header.style.opacity = '0.6';
+            
+            const title = document.createElement('div');
+            title.className = 'block-title';
+            title.innerHTML = `<i class="${placeholder.icon}"></i> <span>${placeholder.title}</span> <span class="badge">#${index}</span>`;
+            
+            header.appendChild(title);
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'block-wrapper error-block';
+            wrapper.id = `wrapper-${block.id}`;
+            
+            const el = document.createElement('div');
+            el.className = 'block process-block';
+            el.innerHTML = `<div style="padding: 10px; color: #f08080;">Tool not found: ${block.type}</div>`;
+            el.appendChild(header);
+            
+            wrapper.appendChild(el);
+            parentElement.appendChild(wrapper);
+            return;
+        }
 
         const wrapper = document.createElement('div');
         wrapper.className = 'block-wrapper';

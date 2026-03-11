@@ -21,11 +21,19 @@ from fastapi.middleware.cors import CORSMiddleware
 # --- Arguments & Logging ---
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+parser.add_argument("--ignore-ssl-errors", action="store_true", help="Ignore SSL certificate errors")
 args = parser.parse_args()
 
 log_level = logging.DEBUG if args.debug else logging.INFO
 logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# --- SSL Configuration ---
+if args.ignore_ssl_errors:
+    logger.warning("SSL certificate verification is DISABLED - this is insecure!")
+    # Disable SSL warnings when verification is off
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 HOST = "127.0.0.1"
 CONFIG_FILE = os.path.expanduser("~/config.json")
@@ -83,6 +91,7 @@ class QwenProvider(BaseProvider):
         self.client_id = "f0304373b74a44d2b584a3fb70ca9e56"
         self.scope = "openid profile email model.completion"
         self.pkce_store = {} # device_code -> verifier
+        self.verify_ssl = not args.ignore_ssl_errors  # Use global args flag
 
     async def proxy_request(self, target_url: str, method: str, headers: Dict, body: Any) -> JSONResponse:
         logger.debug(f"Proxying {method} to {target_url}")
@@ -106,6 +115,7 @@ class QwenProvider(BaseProvider):
                     headers=filtered_headers,
                     json=body,
                     timeout=60,
+                    verify=self.verify_ssl,
                     allow_redirects=True
                 )
             )
@@ -137,7 +147,7 @@ class QwenProvider(BaseProvider):
             "Content-Type": "application/x-www-form-urlencoded",
             "User-Agent": "vscode-qwen-copilot/0.2.0"
         }
-        r = requests.post(self.device_code_url, data=urlencode(payload), headers=headers)
+        r = requests.post(self.device_code_url, data=urlencode(payload), headers=headers, verify=self.verify_ssl)
         try:
             data = r.json()
             if r.status_code == 200 and 'device_code' in data:
@@ -159,7 +169,7 @@ class QwenProvider(BaseProvider):
             "Content-Type": "application/x-www-form-urlencoded",
             "User-Agent": "vscode-qwen-copilot/0.2.0"
         }
-        r = requests.post(self.token_url, data=urlencode(payload), headers=headers)
+        r = requests.post(self.token_url, data=urlencode(payload), headers=headers, verify=self.verify_ssl)
         try:
             data = r.json()
             if 'access_token' in data:
