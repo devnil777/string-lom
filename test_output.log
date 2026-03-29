@@ -1,0 +1,16 @@
+FAILED: [compare] All with marks
+  Input: ["a","b"]
+  Params: {"list2":"b\nd","operation":"all","delimiter":"\\n"}
+  Expected: ["[=] b","[-] a","[+] d"]
+  Got: ["[-] a","[=] b","[+] d"]
+FAILED: [ai_cleaner] Special chars replacement
+  Input: ["#"]
+  Params: {"replaceStr":"X"}
+  Expected: ["X"]
+  Got: ["#"]
+--- Running Combinatorial Tests ---
+
+--- Summary ---
+Total cases: 65
+Passed: 63
+Failed: 2
